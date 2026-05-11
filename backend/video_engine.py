@@ -90,7 +90,7 @@ class TTSProvider(str, Enum):
 @dataclass
 class VideoConfig:
     """Video generation configuration."""
-    model: VideoModel = VideoModel.SEEDANCE_2_FAST
+    model: VideoModel = VideoModel.SEEDANCE_2
     duration: int = 5
     width: int = 1080
     height: int = 1920  # Portrait 9:16
