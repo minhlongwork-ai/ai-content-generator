@@ -1,7 +1,6 @@
 /* src/components/CaptionSEO.tsx */
 import { useState } from 'react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { apiGenerate } from '../api';
 
 interface CaptionResult {
   seo_title?: string;
@@ -35,19 +34,14 @@ export default function CaptionSEO({ token: _token }: { token?: string | null })
     setResult(null);
 
     try {
-      const res = await fetch(`${API_URL}/api/generate/caption-seo`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      });
-      const data = await res.json();
+      const data = await apiGenerate('caption-seo', form);
       if (data.success) {
         setResult(data.content);
       } else {
         setError(data.error || 'Generation failed');
       }
     } catch (err) {
-      setError('Cannot connect to backend. Make sure it\'s running on port 8000.');
+      setError('Cannot connect to backend. Make sure it\'s running.');
     } finally {
       setLoading(false);
     }

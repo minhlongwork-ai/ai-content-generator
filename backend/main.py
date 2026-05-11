@@ -32,19 +32,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize AI client
-ai_client = None
-
-
-@app.on_event("startup")
-async def startup():
-    global ai_client
-    try:
-        ai_client = AIClient()
-    except ValueError:
-        print("WARNING: OpenRouter API key not set. Set OPENROUTER_API_KEY in .env")
-
-
 # ─── Request Models ───────────────────────────────────────
 
 class ProductDescriptionRequest(BaseModel):
@@ -113,20 +100,50 @@ async def root():
 
 @app.get("/api/health")
 async def health():
-    if not ai_client:
-        return {"status": "error", "message": "AI client not initialized"}
-    result = await ai_client.health_check()
+    client = AIClient()
+    result = await client.health_check()
     return result
 
 
+# ─── Auth Helper ─────────────────────────────────────────────
+
+async def get_user_api_key(authorization: str = None) -> tuple:
+    """Extract user API key from JWT token. Returns (api_key, user_email, error)."""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None, None, None  # No auth = use env key
+
+    token = authorization.split(" ", 1)[1]
+    payload = verify_token(token)
+    if not payload:
+        return None, None, "Invalid or expired token"
+
+    user = get_user_by_id(payload["sub"])
+    if not user:
+        return None, None, "User not found"
+
+    # Get user's API key from settings
+    user_settings = load_settings()
+    api_key = user_settings.get("OPENROUTER_API_KEY", "")
+
+    return api_key, user.get("email"), None
+
+
+# ─── Generate Endpoints ──────────────────────────────────────
+
 @app.post("/api/generate/product-description")
-async def generate_product_description(request: ProductDescriptionRequest):
-    """Generate product description."""
-    logger.info(f"Product description request: {request.product_name}")
-    if not ai_client:
-        raise HTTPException(status_code=503, detail="AI client not initialized")
-    
-    result = await ai_client.generate(
+async def generate_product_description(
+    request: ProductDescriptionRequest,
+    authorization: str = None
+):
+    """Generate product description. Uses user's API key if authenticated."""
+    api_key, email, err = await get_user_api_key(authorization)
+    if err:
+        raise HTTPException(status_code=401, detail=err)
+
+    client = AIClient(user_api_key=api_key)
+    logger.info(f"Product description request: {request.product_name} (user={email or 'anonymous'})")
+
+    result = await client.generate(
         content_type="product_description",
         product_name=request.product_name,
         category=request.category,
@@ -135,22 +152,28 @@ async def generate_product_description(request: ProductDescriptionRequest):
         language=request.language,
         tone=request.tone
     )
-    
+
     if not result["success"]:
         logger.error(f"Generation failed: {result['error']}")
         raise HTTPException(status_code=500, detail=result["error"])
-    
+
+    # Track generation for logged-in users
+    if email:
+        increment_generation(email)
+
     logger.info(f"Success: model={result.get('model')}")
     return result
 
 
 @app.post("/api/generate/caption-seo")
-async def generate_caption_seo(request: CaptionSEORequest):
-    """Generate SEO caption and title."""
-    if not ai_client:
-        raise HTTPException(status_code=503, detail="AI client not initialized")
-    
-    result = await ai_client.generate(
+async def generate_caption_seo(request: CaptionSEORequest, authorization: str = None):
+    """Generate SEO caption and title. Uses user's API key if authenticated."""
+    api_key, email, err = await get_user_api_key(authorization)
+    if err:
+        raise HTTPException(status_code=401, detail=err)
+
+    client = AIClient(user_api_key=api_key)
+    result = await client.generate(
         content_type="caption_seo",
         product_name=request.product_name,
         category=request.category,
@@ -158,20 +181,24 @@ async def generate_caption_seo(request: CaptionSEORequest):
         platform=request.platform,
         language=request.language
     )
-    
+
     if not result["success"]:
         raise HTTPException(status_code=500, detail=result["error"])
-    
+
+    if email:
+        increment_generation(email)
     return result
 
 
 @app.post("/api/generate/ad-copy")
-async def generate_ad_copy(request: AdCopyRequest):
-    """Generate ad copy variations."""
-    if not ai_client:
-        raise HTTPException(status_code=503, detail="AI client not initialized")
-    
-    result = await ai_client.generate(
+async def generate_ad_copy(request: AdCopyRequest, authorization: str = None):
+    """Generate ad copy variations. Uses user's API key if authenticated."""
+    api_key, email, err = await get_user_api_key(authorization)
+    if err:
+        raise HTTPException(status_code=401, detail=err)
+
+    client = AIClient(user_api_key=api_key)
+    result = await client.generate(
         content_type="ad_copy",
         product_name=request.product_name,
         category=request.category,
@@ -181,26 +208,27 @@ async def generate_ad_copy(request: AdCopyRequest):
         language=request.language,
         tone=request.tone
     )
-    
+
     if not result["success"]:
         raise HTTPException(status_code=500, detail=result["error"])
-    
+
+    if email:
+        increment_generation(email)
     return result
 
 
 @app.post("/api/generate/video-script")
-async def generate_video_script(request: VideoScriptRequest):
-    """Generate video script with optional TTS audio.
-    
-    Returns a structured video script with scenes, narration, and audio files.
-    """
-    if not ai_client:
-        raise HTTPException(status_code=503, detail="AI client not initialized")
-    
-    logger.info(f"Video script request: {request.product_name} ({request.duration}s, {request.platform})")
-    
+async def generate_video_script(request: VideoScriptRequest, authorization: str = None):
+    """Generate video script with optional TTS audio. Uses user's API key if authenticated."""
+    api_key, email, err = await get_user_api_key(authorization)
+    if err:
+        raise HTTPException(status_code=401, detail=err)
+
+    client = AIClient(user_api_key=api_key)
+    logger.info(f"Video script request: {request.product_name} ({request.duration}s, {request.platform}) user={email or 'anonymous'}")
+
     # Step 1: Generate video script via LLM
-    result = await ai_client.generate(
+    result = await client.generate(
         content_type="video_script",
         product_name=request.product_name,
         category=request.category,
@@ -254,6 +282,9 @@ async def generate_video_script(request: VideoScriptRequest):
             logger.error(f"TTS generation failed: {e}")
             audio_result = {"error": str(e), "available": False}
     
+    if email:
+        increment_generation(email)
+
     return {
         "success": True,
         "model": result.get("model"),

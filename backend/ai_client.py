@@ -155,10 +155,15 @@ def _parse_response(data: dict) -> dict:
 
 
 class AIClient:
-    """Client for AI content generation via OpenRouter or 9Router."""
+    """Client for AI content generation via OpenRouter or 9Router.
+    
+    Supports per-user API keys — pass user_api_key to use key from user's settings.
+    Falls back to env key if no user key provided.
+    """
 
-    def __init__(self, model: str = None):
+    def __init__(self, model: str = None, user_api_key: str = None):
         self.model = model or DEFAULT_MODEL
+        self.user_api_key = user_api_key
 
     async def generate(self, content_type: str, **kwargs) -> dict:
         """Generate content based on type and parameters."""
@@ -202,18 +207,19 @@ class AIClient:
         }
 
     async def _generate_openrouter(self, content_type: str, prompt: str) -> dict:
-        """Generate via OpenRouter."""
-        if not OPENROUTER_API_KEY or OPENROUTER_API_KEY == "your_api_key_here":
+        """Generate via OpenRouter. Uses user key if available, falls back to env key."""
+        api_key = self.user_api_key or OPENROUTER_API_KEY
+        if not api_key or api_key == "your_api_key_here":
             return {
                 "success": False,
-                "error": "OpenRouter API key not configured",
+                "error": "OpenRouter API key not configured. Please add your API key in Settings.",
                 "content_type": content_type
             }
 
-        models_to_try = [DEFAULT_MODEL] + [m for m in FREE_MODELS if m != DEFAULT_MODEL]
+        models_to_try = [self.model] + [m for m in FREE_MODELS if m != self.model]
         for model in models_to_try:
             try:
-                result = await self._call_openrouter(prompt, model)
+                result = await self._call_openrouter(prompt, model, api_key)
                 if result:
                     return {
                         "success": True,
@@ -257,13 +263,14 @@ class AIClient:
             else:
                 raise Exception(f"9Router error {response.status_code}: {response.text}")
 
-    async def _call_openrouter(self, prompt: str, model: str) -> dict:
-        """Call OpenRouter API."""
+    async def _call_openrouter(self, prompt: str, model: str, api_key: str = None) -> dict:
+        """Call OpenRouter API. Uses provided key or falls back to env key."""
+        key = api_key or OPENROUTER_API_KEY
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 f"{OPENROUTER_BASE_URL}/chat/completions",
                 headers={
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Authorization": f"Bearer {key}",
                     "Content-Type": "application/json",
                     "HTTP-Referer": "http://localhost:3000",
                     "X-Title": "AI Content Generator"
@@ -290,9 +297,10 @@ class AIClient:
                 if AI_BACKEND == "9router":
                     response = await client.get(f"{NINEROUTER_URL}/v1/models")
                 else:
+                    key = self.user_api_key or OPENROUTER_API_KEY
                     response = await client.get(
                         f"{OPENROUTER_BASE_URL}/models",
-                        headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"}
+                        headers={"Authorization": f"Bearer {key}"} if key else {}
                     )
                 return {
                     "status": "healthy" if response.status_code == 200 else "error",

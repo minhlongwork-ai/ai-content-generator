@@ -1,7 +1,6 @@
 /* src/components/ProductDescription.tsx */
 import { useState } from 'react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { apiGenerate } from '../api';
 
 interface ProductResult {
   headline?: string;
@@ -36,19 +35,14 @@ export default function ProductDescription({ token: _token }: { token?: string |
     setResult(null);
 
     try {
-      const res = await fetch(`${API_URL}/api/generate/product-description`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      });
-      const data = await res.json();
+      const data = await apiGenerate('product-description', form);
       if (data.success) {
         setResult(data.content);
       } else {
         setError(data.error || 'Generation failed');
       }
     } catch (err) {
-      setError('Cannot connect to backend. Make sure it\'s running on port 8000.');
+      setError('Cannot connect to backend. Make sure it\'s running.');
     } finally {
       setLoading(false);
     }

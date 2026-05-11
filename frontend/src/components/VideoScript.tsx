@@ -1,8 +1,6 @@
 /* src/components/VideoScript.tsx — Full Video Generation UI */
-
 import { useState, useEffect, useRef } from 'react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { apiGenerate, apiFetch } from '../api';
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -103,12 +101,9 @@ export default function VideoScript({ token: _token }: { token?: string | null }
 
   const fetchProviders = async () => {
     try {
-      const resp = await fetch(`${API_URL}/api/video/providers`);
-      if (resp.ok) {
-        const data = await resp.json();
-        setProviders(data.providers || {});
-        setModels(data.models || []);
-      }
+      const data = await apiFetch('/api/video/providers');
+      setProviders(data.providers || {});
+      setModels(data.models || []);
     } catch (e) {
       console.error('Failed to fetch providers:', e);
     }
@@ -116,11 +111,8 @@ export default function VideoScript({ token: _token }: { token?: string | null }
 
   const fetchPrices = async () => {
     try {
-      const resp = await fetch(`${API_URL}/api/video/prices?duration=5`);
-      if (resp.ok) {
-        const data = await resp.json();
-        setPrices(data.prices || []);
-      }
+      const data = await apiFetch('/api/video/prices?duration=5');
+      setPrices(data.prices || []);
     } catch (e) {
       console.error('Failed to fetch prices:', e);
     }
@@ -142,28 +134,23 @@ export default function VideoScript({ token: _token }: { token?: string | null }
     setVideoUrl(null);
 
     try {
-      const response = await fetch(`${API_URL}/api/generate/video-script`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          product_name: productName,
-          category,
-          features,
-          target_audience: targetAudience,
-          platform,
-          language,
-          tone,
-          duration,
-          n_scenes: nScenes,
-          generate_audio: generateAudio,
-          voice_language: voiceLanguage,
-          voice_gender: voiceGender,
-          tts_speed: ttsSpeed,
-        }),
+      const data = await apiGenerate('video-script', {
+        product_name: productName,
+        category,
+        features,
+        target_audience: targetAudience,
+        platform,
+        language,
+        tone,
+        duration,
+        n_scenes: nScenes,
+        generate_audio: generateAudio,
+        voice_language: voiceLanguage,
+        voice_gender: voiceGender,
+        tts_speed: ttsSpeed,
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || 'Generation failed');
+      if (!data.success) throw new Error(data.error || 'Generation failed');
       if (data.success) {
         setScript(data.script);
         setAudio(data.audio || null);
@@ -199,7 +186,7 @@ export default function VideoScript({ token: _token }: { token?: string | null }
       // The script-to-video endpoint uses the full script object
       void visualParts; // used for video generation context
 
-      const response = await fetch(`${API_URL}/api/video/script-to-video`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/video/script-to-video`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -217,7 +204,7 @@ export default function VideoScript({ token: _token }: { token?: string | null }
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Video generation failed');
       if (data.success) {
-        setVideoUrl(`${API_URL}${data.video_url}`);
+        setVideoUrl(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${data.video_url}`);
         setVideoCost(data.cost_usd || 0);
         setSubTab('preview');
       } else {
@@ -242,7 +229,8 @@ export default function VideoScript({ token: _token }: { token?: string | null }
     try {
       const [w, h] = aspectRatio === '9:16' ? [1080, 1920] : aspectRatio === '16:9' ? [1920, 1080] : [1080, 1080];
 
-      const response = await fetch(`${API_URL}/api/video/generate`, {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${baseUrl}/api/video/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -264,7 +252,7 @@ export default function VideoScript({ token: _token }: { token?: string | null }
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Video generation failed');
       if (data.success) {
-        setVideoUrl(`${API_URL}${data.video_url}`);
+        setVideoUrl(`${baseUrl}${data.video_url}`);
         setVideoCost(data.cost_usd || 0);
         setSubTab('preview');
       } else {
@@ -288,7 +276,7 @@ export default function VideoScript({ token: _token }: { token?: string | null }
     if (audioRef.current) {
       audioRef.current.pause();
     }
-    const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
+    const fullUrl = url.startsWith('http') ? url : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${url}`;
     const audioEl = new Audio(fullUrl);
     audioEl.play();
     audioEl.onended = () => setPlayingAudio(null);

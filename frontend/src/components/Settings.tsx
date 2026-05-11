@@ -1,8 +1,6 @@
 /* src/components/Settings.tsx — API Keys & Model Configuration */
-
 import { useState, useEffect } from 'react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { apiFetch } from '../api';
 
 interface ApiKeysConfigured {
   openrouter: boolean;
@@ -135,12 +133,9 @@ export default function Settings({ user, onLogout }: SettingsProps) {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const resp = await fetch(`${API_URL}/api/settings`);
-      if (resp.ok) {
-        const data = await resp.json();
-        setSettings(data.settings || {});
-        setApiKeysStatus(data.api_keys_configured || {});
-      }
+      const resp = await apiFetch('/api/settings');
+      setSettings(resp.settings || {});
+      setApiKeysStatus(resp.api_keys_configured || {});
     } catch (e) {
       console.error('Failed to fetch settings:', e);
       setMessage({ type: 'error', text: 'Failed to fetch settings' });
@@ -153,13 +148,11 @@ export default function Settings({ user, onLogout }: SettingsProps) {
     setSaving(true);
     setMessage(null);
     try {
-      const resp = await fetch(`${API_URL}/api/settings`, {
+      const data = await apiFetch('/api/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ settings }),
       });
-      const data = await resp.json();
-      if (resp.ok && data.success) {
+      if (data.success) {
         setMessage({ type: 'success', text: 'Settings saved successfully!' });
         setApiKeysStatus(data.api_keys_configured);
       } else {
