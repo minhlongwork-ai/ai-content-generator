@@ -1,4 +1,4 @@
-/* src/components/Pricing.tsx — Subscription Plans with Stripe Checkout */
+/* src/components/Pricing.tsx — Bảng giá (Tiếng Việt) */
 import { useState } from 'react';
 import { showToast } from './Toast';
 
@@ -13,19 +13,19 @@ interface PricingProps {
 const plans = [
   {
     id: 'free',
-    name: 'Free',
+    name: 'Miễn Phí',
     price: '0',
-    period: 'forever',
-    description: 'Perfect for trying out',
+    period: 'mãi mãi',
+    description: 'Phù hợp để thử nghiệm',
     features: [
-      '5 generations/day',
-      'Product descriptions',
+      '5 lần tạo/ngày',
+      'Mô tả sản phẩm',
       'Caption & SEO',
-      'Ad copy (1 variation)',
-      'Free AI models only',
-      'Community support',
+      'Quảng cáo (1 phiên bản)',
+      'Chỉ mô hình AI miễn phí',
+      'Hỗ trợ cộng đồng',
     ],
-    cta: 'Current Plan',
+    cta: 'Gói Hiện Tại',
     popular: false,
     disabled: false,
   },
@@ -33,39 +33,39 @@ const plans = [
     id: 'pro',
     name: 'Pro',
     price: '299K',
-    period: '/month',
-    description: 'For serious sellers',
+    period: '/tháng',
+    description: 'Cho người bán nghiêm túc',
     features: [
-      'Unlimited text generation',
-      'All content types',
-      'Ad copy (3 variations)',
-      'Video scripts + TTS',
-      'All AI models (free + paid)',
-      'Priority support',
-      'Export to CSV/JSON',
-      'API access',
+      'Tạo nội dung không giới hạn',
+      'Tất cả loại nội dung',
+      'Quảng cáo (3 phiên bản)',
+      'Kịch bản video + TTS',
+      'Tất cả mô hình AI (miễn phí + trả phí)',
+      'Hỗ trợ ưu tiên',
+      'Xuất CSV/JSON',
+      'Truy cập API',
     ],
-    cta: 'Upgrade to Pro',
+    cta: 'Nâng Cấp Pro',
     popular: true,
     disabled: false,
   },
   {
     id: 'business',
-    name: 'Business',
+    name: 'Doanh Nghiệp',
     price: '599K',
-    period: '/month',
-    description: 'For teams & agencies',
+    period: '/tháng',
+    description: 'Cho đội nhóm & công ty',
     features: [
-      'Everything in Pro',
-      'AI video generation',
-      'Bulk generation (CSV upload)',
-      'Team members (up to 5)',
-      'White-label option',
-      'Dedicated support',
-      'Custom integrations',
-      'Usage analytics',
+      'Tất cả trong Pro',
+      'Tạo video AI',
+      'Tạo hàng loạt (CSV)',
+      'Thành viên nhóm (tối đa 5)',
+      'Tùy chỉnh nhãn hiệu',
+      'Hỗ trợ riêng',
+      'Tích hợp tùy chỉnh',
+      'Thống kê sử dụng',
     ],
-    cta: 'Upgrade to Business',
+    cta: 'Nâng Cấp Doanh Nghiệp',
     popular: false,
     disabled: false,
   },
@@ -77,42 +77,30 @@ export default function Pricing({ onSelectPlan, userPlan, token }: PricingProps)
 
   const handleSelectPlan = async (planId: string) => {
     if (planId === 'free') return;
-
     if (!token) {
-      showToast('warning', 'Please sign in to upgrade');
+      showToast('warning', 'Vui lòng đăng nhập để nâng cấp');
       onSelectPlan('auth');
       return;
     }
-
     if (userPlan === planId) {
-      showToast('info', 'You are already on this plan');
+      showToast('info', 'Bạn đang ở gói này');
       return;
     }
-
     setLoading(planId);
     try {
       const res = await fetch(`${API_URL}/api/payment/checkout`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ plan: planId }),
       });
-
       const data = await res.json();
-
       if (data.checkout_url) {
         window.location.href = data.checkout_url;
       } else if (data.error) {
-        if (data.available === false) {
-          showToast('info', 'Stripe not configured yet. Contact admin to upgrade.');
-        } else {
-          showToast('error', data.error);
-        }
+        showToast('info', 'Stripe chưa được cấu hình. Liên hệ admin để nâng cấp.');
       }
     } catch (err: any) {
-      showToast('error', 'Failed to create checkout session');
+      showToast('error', 'Không thể tạo phiên thanh toán');
     } finally {
       setLoading(null);
     }
@@ -121,20 +109,14 @@ export default function Pricing({ onSelectPlan, userPlan, token }: PricingProps)
   return (
     <div className="pricing-page">
       <div className="pricing-header">
-        <h1>Simple, Transparent Pricing</h1>
-        <p>Start free. Scale when you're ready.</p>
-
+        <h1>Bảng Giá Đơn Giản, Minh Bạch</h1>
+        <p>Bắt đầu miễn phí. Nâng cấp khi bạn sẵn sàng.</p>
         <div className="pricing-toggle">
-          <span className={!annual ? 'active' : ''}>Monthly</span>
-          <button
-            className={`toggle-switch ${annual ? 'annual' : ''}`}
-            onClick={() => setAnnual(!annual)}
-          >
+          <span className={!annual ? 'active' : ''}>Hàng tháng</span>
+          <button className={`toggle-switch ${annual ? 'annual' : ''}`} onClick={() => setAnnual(!annual)}>
             <div className="toggle-knob" />
           </button>
-          <span className={annual ? 'active' : ''}>
-            Annual <span className="save-badge">Save 20%</span>
-          </span>
+          <span className={annual ? 'active' : ''}>Hàng năm <span className="save-badge">Tiết kiệm 20%</span></span>
         </div>
       </div>
 
@@ -142,29 +124,19 @@ export default function Pricing({ onSelectPlan, userPlan, token }: PricingProps)
         {plans.map((plan) => {
           const isCurrentPlan = userPlan === plan.id;
           return (
-            <div
-              key={plan.id}
-              className={`pricing-card ${plan.popular ? 'popular' : ''} ${isCurrentPlan ? 'current' : ''}`}
-            >
-              {plan.popular && <div className="popular-badge">⭐ Most Popular</div>}
-              {isCurrentPlan && <div className="current-badge">✓ Current Plan</div>}
+            <div key={plan.id} className={`pricing-card ${plan.popular ? 'popular' : ''} ${isCurrentPlan ? 'current' : ''}`}>
+              {plan.popular && <div className="popular-badge">⭐ Phổ Biến Nhất</div>}
+              {isCurrentPlan && <div className="current-badge">✓ Gói Hiện Tại</div>}
               <div className="plan-name">{plan.name}</div>
               <div className="plan-description">{plan.description}</div>
               <div className="plan-price">
                 <span className="currency">₫</span>
-                <span className="amount">
-                  {annual && plan.price !== '0'
-                    ? Math.round(parseInt(plan.price.replace('K', '')) * 0.8) + 'K'
-                    : plan.price}
-                </span>
+                <span className="amount">{annual && plan.price !== '0' ? Math.round(parseInt(plan.price.replace('K', '')) * 0.8) + 'K' : plan.price}</span>
                 <span className="period">{plan.period}</span>
               </div>
               <ul className="plan-features">
                 {plan.features.map((feature, i) => (
-                  <li key={i}>
-                    <span className="check">✓</span>
-                    {feature}
-                  </li>
+                  <li key={i}><span className="check">✓</span>{feature}</li>
                 ))}
               </ul>
               <button
@@ -172,32 +144,31 @@ export default function Pricing({ onSelectPlan, userPlan, token }: PricingProps)
                 onClick={() => handleSelectPlan(plan.id)}
                 disabled={plan.disabled || isCurrentPlan || loading === plan.id}
               >
-                {loading === plan.id ? '⏳ Processing...' : isCurrentPlan ? '✓ Current Plan' : plan.cta}
+                {loading === plan.id ? '⏳ Đang xử lý...' : isCurrentPlan ? '✓ Gói Hiện Tại' : plan.cta}
               </button>
             </div>
           );
         })}
       </div>
 
-      {/* FAQ */}
       <div className="pricing-faq">
-        <h2>Frequently Asked Questions</h2>
+        <h2>Câu Hỏi Thường Gặp</h2>
         <div className="faq-grid">
           <div className="faq-item">
-            <h4>Can I cancel anytime?</h4>
-            <p>Yes. No contracts, no hidden fees. Cancel with one click from your settings.</p>
+            <h4>Tôi có thể hủy bất cứ lúc nào không?</h4>
+            <p>Có. Không hợp đồng, không phí ẩn. Hủy với một click trong cài đặt.</p>
           </div>
           <div className="faq-item">
-            <h4>What payment methods do you accept?</h4>
-            <p>International cards via Stripe (Visa, Mastercard, Amex). Vietnamese bank transfer coming soon.</p>
+            <h4>Bạn chấp nhận phương thức thanh toán nào?</h4>
+            <p>Thẻ quốc tế qua Stripe (Visa, Mastercard, Amex). Chuyển khoản ngân hàng Việt Nam sắp ra mắt.</p>
           </div>
           <div className="faq-item">
-            <h4>Is there a free trial?</h4>
-            <p>The Free plan is always free — 5 generations/day. No credit card required.</p>
+            <h4>Có bản dùng thử miễn phí không?</h4>
+            <p>Gói Miễn Phí luôn miễn phí — 5 lần tạo/ngày. Không cần thẻ tín dụng.</p>
           </div>
           <div className="faq-item">
-            <h4>Can I switch plans later?</h4>
-            <p>Yes. Upgrade or downgrade anytime. Changes take effect immediately.</p>
+            <h4>Tôi có thể đổi gói sau không?</h4>
+            <p>Có. Nâng cấp hoặc hạ gói bất cứ lúc nào. Thay đổi có hiệu lực ngay lập tức.</p>
           </div>
         </div>
       </div>

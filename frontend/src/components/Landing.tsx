@@ -1,4 +1,4 @@
-/* src/components/Landing.tsx — Hero + Features + CTA */
+/* src/components/Landing.tsx — Hero + Features + CTA (Tiếng Việt) */
 
 interface LandingProps {
   onGetStarted: () => void;
@@ -6,114 +6,113 @@ interface LandingProps {
 }
 
 export default function Landing({ onGetStarted, onViewPricing }: LandingProps) {
-
   return (
     <div className="landing">
       {/* Hero */}
       <section className="hero">
-        <div className="hero-badge">🚀 AI-Powered • Built for E-Commerce</div>
+        <div className="hero-badge">🚀 Công cụ AI • Dành cho E-Commerce</div>
         <h1 className="hero-title">
-          Generate High-Converting
-          <span className="gradient-text"> E-Commerce Content</span>
-          <br />in Seconds
+          Tạo Nội Dung Chuyển Đổi Cao
+          <span className="gradient-text"> Cho E-Commerce</span>
+          <br />trong Vài Giây
         </h1>
         <p className="hero-subtitle">
-          Product descriptions, SEO captions, ad copies, video scripts — all powered by AI.
-          Built for Shopee, Lazada, TikTok Shop sellers.
+          Mô tả sản phẩm, caption SEO, quảng cáo, kịch bản video — tất cả đều được tạo bởi AI.
+          Dành cho người bán Shopee, Lazada, TikTok Shop.
         </p>
         <div className="hero-cta">
           <button className="btn-hero-primary" onClick={onGetStarted}>
-            Start Free — No Credit Card
+            Bắt Đầu Miễn Phí — Không Cần Thẻ
           </button>
           <button className="btn-hero-secondary" onClick={onViewPricing}>
-            View Pricing
+            Xem Bảng Giá
           </button>
         </div>
         <div className="hero-stats">
           <div className="stat">
             <span className="stat-number">4+</span>
-            <span className="stat-label">Content Types</span>
+            <span className="stat-label">Loại Nội Dung</span>
           </div>
           <div className="stat">
             <span className="stat-number">2</span>
-            <span className="stat-label">Languages (EN + VI)</span>
+            <span className="stat-label">Ngôn Ngữ (EN + VI)</span>
           </div>
           <div className="stat">
             <span className="stat-number">6+</span>
-            <span className="stat-label">Platforms Supported</span>
+            <span className="stat-label">Nền Tảng Hỗ Trợ</span>
           </div>
           <div className="stat">
-            <span className="stat-number">Free</span>
-            <span className="stat-label">AI Models Included</span>
+            <span className="stat-number">Miễn phí</span>
+            <span className="stat-label">Mô Hình AI</span>
           </div>
         </div>
       </section>
 
       {/* Features */}
       <section className="features">
-        <h2 className="section-title">Everything You Need to Sell More</h2>
-        <p className="section-subtitle">Stop writing from scratch. Let AI do the heavy lifting.</p>
+        <h2 className="section-title">Tất Cả Những Gì Bạn Cần Để Bán Nhiều Hơn</h2>
+        <p className="section-subtitle">Không cần viết từ đầu. Để AI làm phần nặng.</p>
         <div className="features-grid">
           <div className="feature-card">
             <div className="feature-icon">📝</div>
-            <h3>Product Descriptions</h3>
-            <p>Headlines, bullet points, full descriptions, and SEO keywords — tailored for your product and platform.</p>
+            <h3>Mô Tả Sản Phẩm</h3>
+            <p>Tiêu đề, bullet points, mô tả đầy đủ, từ khóa SEO — tùy chỉnh cho sản phẩm và nền tảng của bạn.</p>
           </div>
           <div className="feature-card">
             <div className="feature-icon">🔍</div>
             <h3>Caption & SEO</h3>
-            <p>Optimized titles, captions, and hashtags for Shopee, Lazada, Amazon, TikTok Shop, Instagram.</p>
+            <p>Tiêu đề tối ưu, caption, hashtag cho Shopee, Lazada, Amazon, TikTok Shop, Instagram.</p>
           </div>
           <div className="feature-card">
             <div className="feature-icon">🎯</div>
-            <h3>Ad Copy</h3>
-            <p>3 variations per generation — PAS, BAB, and Story styles. Test and pick the winner.</p>
+            <h3>Quảng Cáo</h3>
+            <p>3 phiên bản mỗi lần tạo — phong cách PAS, BAB, Story. Thử và chọn phiên bản tốt nhất.</p>
           </div>
           <div className="feature-card">
             <div className="feature-icon">🎬</div>
-            <h3>Video Scripts + TTS</h3>
-            <p>Short-form video scripts with scene-by-scene narration. Auto-generate voice-over with TTS.</p>
+            <h3>Kịch Bản Video + TTS</h3>
+            <p>Kịch bản video ngắn với lời thoại từng cảnh. Tự động tạo giọng nói bằng TTS.</p>
           </div>
           <div className="feature-card">
             <div className="feature-icon">🎙️</div>
-            <h3>AI Voice (TTS)</h3>
-            <p>Multiple languages, male/female voices, adjustable speed. Edge-TTS (free) or ElevenLabs (premium).</p>
+            <h3>Giọng Nói AI (TTS)</h3>
+            <p>Đa ngôn ngữ, giọng nam/nữ, tốc độ điều chỉnh được. Edge-TTS (miễn phí) hoặc ElevenLabs (cao cấp).</p>
           </div>
           <div className="feature-card">
             <div className="feature-icon">🎥</div>
-            <h3>AI Video Generation</h3>
-            <p>Generate short videos from text prompts. Supports Seedance, Kling, Veo via fal.ai & Replicate.</p>
+            <h3>Tạo Video AI</h3>
+            <p>Tạo video ngắn từ mô tả văn bản. Hỗ trợ Seedance, Kling, Veo qua fal.ai & Replicate.</p>
           </div>
         </div>
       </section>
 
       {/* How it works */}
       <section className="how-it-works">
-        <h2 className="section-title">How It Works</h2>
+        <h2 className="section-title">Cách Hoạt Động</h2>
         <div className="steps">
           <div className="step">
             <div className="step-number">1</div>
-            <h3>Enter Product Info</h3>
-            <p>Name, category, features — that's it.</p>
+            <h3>Nhập Thông Tin Sản Phẩm</h3>
+            <p>Tên, danh mục, tính năng — chỉ vậy thôi.</p>
           </div>
           <div className="step-arrow">→</div>
           <div className="step">
             <div className="step-number">2</div>
-            <h3>AI Generates Content</h3>
-            <p>Multiple variations in seconds.</p>
+            <h3>AI Tạo Nội Dung</h3>
+            <p>Nhiều phiên bản trong vài giây.</p>
           </div>
           <div className="step-arrow">→</div>
           <div className="step">
             <div className="step-number">3</div>
-            <h3>Copy & Publish</h3>
-            <p>One-click copy. Paste to your store.</p>
+            <h3>Sao Chép & Đăng Bán</h3>
+            <p>Một click sao chép. Dán vào gian hàng.</p>
           </div>
         </div>
       </section>
 
       {/* Platforms */}
       <section className="platforms">
-        <h2 className="section-title">Optimized For</h2>
+        <h2 className="section-title">Tối Ưu Cho</h2>
         <div className="platform-logos">
           <span className="platform-tag">Shopee</span>
           <span className="platform-tag">Lazada</span>
@@ -128,16 +127,16 @@ export default function Landing({ onGetStarted, onViewPricing }: LandingProps) {
 
       {/* CTA */}
       <section className="cta-section">
-        <h2>Ready to 10x Your Content?</h2>
-        <p>Start generating high-converting content for free.</p>
+        <h2>Sẵn Sàng Tăng 10x Nội Dung?</h2>
+        <p>Bắt đầu tạo nội dung chuyển đổi cao miễn phí.</p>
         <button className="btn-hero-primary" onClick={onGetStarted}>
-          Get Started Free →
+          Bắt Đầu Miễn Phí →
         </button>
       </section>
 
       {/* Footer */}
       <footer className="landing-footer">
-        <p>© 2025 AI Content Generator • Built with ❤️ for e-commerce sellers</p>
+        <p>© 2025 AI Content Generator • Được tạo với ❤️ cho người bán hàng e-commerce</p>
       </footer>
     </div>
   );
