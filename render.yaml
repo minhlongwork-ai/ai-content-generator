@@ -1,11 +1,6 @@
-# render.yaml — Render deployment config
+# render.yaml — Use Docker runtime
 services:
   - type: web
     name: ai-content-generator-api
-    runtime: python
+    runtime: docker
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn main:app --bind 0.0.0.0:$PORT --workers 1 --worker-class uvicorn.workers.UvicornWorker
-    envVars:
-      - key: PYO3_USE_ABI3_FORWARD_COMPATIBILITY
-        value: "1"
