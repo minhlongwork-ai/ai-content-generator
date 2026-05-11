@@ -4,8 +4,8 @@ services:
     name: ai-content-generator-api
     runtime: python
     rootDir: backend
-    buildCommand: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-    startCommand: .venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r requirements.txt
+    startCommand: pip install -r requirements.txt && python3 -m uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYO3_USE_ABI3_FORWARD_COMPATIBILITY
         value: "1"
