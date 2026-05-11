@@ -1,0 +1,15 @@
+# render.yaml — Deploy backend to Render
+services:
+  - type: web
+    name: ai-content-generator-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OPENROUTER_API_KEY
+        sync: false  # Set in Render dashboard
+      - key: OPENROUTER_BASE_URL
+        value: https://openrouter.ai/api/v1
+      - key: DEFAULT_MODEL
+        value: google/gemini-2.0-flash-exp:free
+    plan: free

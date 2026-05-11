@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HERMES AGENT: CREATIVE PIPELINE</title>
+  <script>p5.disableFriendlyErrors = true;</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #0a0a0f;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// HERMES AGENT: CREATIVE PIPELINE — Digital Portfolio Viewer
+// Resolution: 1920x1080
+// ═══════════════════════════════════════════════════════════════
+
+// ─── CONFIG ───────────────────────────────────────────────────
+const CONFIG = {
+  seed: 42,
+  colorScheme: 0,    // 0=cyber, 1=warm, 2=ocean, 3=neon
+  motionSpeed: 1.0,
+  particleDensity: 1.0,
+  noiseScale: 1.0,
+  showGrid: true,
+  showLabels: true,
+  exportMode: false,
+};
+
+// ─── COLOR PALETTES ───────────────────────────────────────────
+const PALETTES = {
+  cyber: {
+    bg: [10, 10, 15],
+    panel: [18, 18, 27],
+    panelBorder: [39, 39, 54],
+    accent: [102, 126, 234],
+    accent2: [118, 75, 162],
+    text: [228, 228, 231],
+    textDim: [113, 113, 122],
+    highlight: [0, 255, 65],
+    graph: [[102, 126, 234], [118, 75, 162], [0, 255, 65], [255, 0, 144], [0, 212, 255]],
+  },
+  warm: {
+    bg: [15, 10, 10],
+    panel: [27, 18, 18],
+    panelBorder: [54, 39, 39],
+    accent: [238, 108, 77],
+    accent2: [245, 230, 99],
+    text: [232, 213, 183],
+    textDim: [168, 144, 112],
+    highlight: [255, 215, 0],
+    graph: [[238, 108, 77], [245, 230, 99], [133, 14, 53], [203, 91, 36], [216, 160, 109]],
+  },
+  ocean: {
+    bg: [8, 14, 23],
+    panel: [15, 23, 42],
+    panelBorder: [30, 41, 59],
+    accent: [6, 182, 212],
+    accent2: [59, 130, 246],
+    text: [224, 225, 221],
+    textDim: [119, 141, 169],
+    highlight: [131, 197, 192],
+    graph: [[6, 182, 212], [59, 130, 246], [14, 51, 61], [0, 109, 119], [131, 197, 192]],
+  },
+  neon: {
+    bg: [15, 15, 15],
+    panel: [20, 20, 25],
+    panelBorder: [40, 40, 50],
+    accent: [255, 0, 255],
+    accent2: [0, 255, 255],
+    text: [255, 255, 255],
+    textDim: [136, 136, 136],
+    highlight: [255, 255, 150],
+    graph: [[255, 0, 255], [0, 255, 255], [255, 0, 128], [128, 255, 0], [0, 128, 255]],
+  },
+};
+
+// ─── STATE ────────────────────────────────────────────────────
+let P; // current palette
+let time = 0;
+let particles = [];
+let landscapeLayer;
+let dataVizLayer;
+let motionLayer;
+let uiLayer;
+let flowField;
+let vietnamNodes = [];
+let vietnamConnections = [];
+let motionPaths = [];
+let motionIndex = 0;
+let isPaused = false;
+let showViewer = true;
+
+// ─── UI ELEMENTS ──────────────────────────────────────────────
+let sliders = {};
+let buttons = [];
+
+// ═══════════════════════════════════════════════════════════════
+// SETUP
+// ═══════════════════════════════════════════════════════════════
+
+function setup() {
+  createCanvas(1920, 1080);
+  pixelDensity(1);
+  colorMode(RGB, 255);
+  randomSeed(CONFIG.seed);
+  noiseSeed(CONFIG.seed);
+
+  P = PALETTES.cyber;
+
+  // Create offscreen layers
+  landscapeLayer = createGraphics(620, 400);
+  dataVizLayer = createGraphics(620, 400);
+  motionLayer = createGraphics(620, 400);
+  uiLayer = createGraphics(1920, 1080);
+
+  // Initialize systems
+  initParticles();
+  initFlowField();
+  initVietnamData();
+  initMotionPaths();
+  initUI();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRAW
+// ═══════════════════════════════════════════════════════════════
+
+function draw() {
+  if (!isPaused) time += 0.008 * CONFIG.motionSpeed;
+
+  background(P.bg[0], P.bg[1], P.bg[2]);
+
+  // Draw background grid
+  if (CONFIG.showGrid) drawBackgroundGrid();
+
+  // Draw header
+  drawHeader();
+
+  // Draw main panels
+  drawPanel(30, 80, 660, 460, 'GENERATIVE LANDSCAPES', 0);
+  drawPanel(710, 80, 660, 460, 'INTERACTIVE DATA VIZ', 1);
+  drawPanel(1390, 80, 500, 460, 'AUTOMATED MOTION', 2);
+
+  // Draw process workflow
+  drawWorkflow(30, 560, 1860, 100);
+
+  // Draw control panel
+  drawControlPanel(30, 680, 1860, 380);
+
+  // Render layers
+  renderLandscape();
+  renderDataViz();
+  renderMotion();
+
+  // Draw layers onto canvas
+  image(landscapeLayer, 50, 110, 620, 400);
+  image(dataVizLayer, 730, 110, 620, 400);
+  image(motionLayer, 1410, 110, 460, 400);
+
+  // Draw UI overlay
+  drawUIOverlay();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BACKGROUND
+// ═══════════════════════════════════════════════════════════════
+
+function drawBackgroundGrid() {
+  stroke(P.panelBorder[0], P.panelBorder[1], P.panelBorder[2], 30);
+  strokeWeight(0.5);
+  for (let x = 0; x < width; x += 40) {
+    line(x, 0, x, height);
+  }
+  for (let y = 0; y < height; y += 40) {
+    line(0, y, width, y);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HEADER
+// ═══════════════════════════════════════════════════════════════
+
+function drawHeader() {
+  // Title bar
+  noStroke();
+  fill(P.panel[0], P.panel[1], P.panel[2], 200);
+  rect(0, 0, width, 65, 0);
+
+  // Accent line
+  fill(P.accent[0], P.accent[1], P.accent[2]);
+  rect(0, 63, width, 2);
+
+  // Title
+  fill(P.text[0], P.text[1], P.text[2]);
+  textSize(22);
+  textStyle(BOLD);
+  text('HERMES AGENT: CREATIVE PIPELINE', 30, 40);
+
+  // Subtitle
+  textSize(11);
+  textStyle(NORMAL);
+  fill(P.textDim[0], P.textDim[1], P.textDim[2]);
+  text('DIGITAL PORTFOLIO VIEWER — p5.js GENERATIVE ENGINE', 30, 56);
+
+  // Status indicators
+  let cx = width - 30;
+  const indicators = [
+    { label: 'p5.js', color: P.highlight },
+    { label: '1920×1080', color: P.accent },
+    { label: `SEED:${CONFIG.seed}`, color: P.accent2 },
+    { label: `FPS:${Math.round(frameRate())}`, color: P.textDim },
+  ];
+  for (let i = indicators.length - 1; i >= 0; i--) {
+    const ind = indicators[i];
+    fill(ind.color[0], ind.color[1], ind.color[2], 180);
+    textSize(10);
+    const tw = textWidth(ind.label);
+    text(ind.label, cx - tw, 35);
+    cx -= tw + 20;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PANELS
+// ═══════════════════════════════════════════════════════════════
+
+function drawPanel(x, y, w, h, title, index) {
+  // Panel background
+  noStroke();
+  fill(P.panel[0], P.panel[1], P.panel[2], 220);
+  rect(x, y, w, h, 8);
+
+  // Border
+  noFill();
+  stroke(P.panelBorder[0], P.panelBorder[1], P.panelBorder[2], 100);
+  strokeWeight(1);
+  rect(x, y, w, h, 8);
+
+  // Accent top line
+  noStroke();
+  const ac = index === 0 ? P.accent : index === 1 ? P.highlight : P.accent2;
+  fill(ac[0], ac[1], ac[2]);
+  rect(x + 15, y, 60, 3, 2);
+
+  // Title
+  fill(P.text[0], P.text[1], P.text[2]);
+  textSize(13);
+  textStyle(BOLD);
+  text(title, x + 15, y + 25);
+
+  // Content area border
+  noFill();
+  stroke(P.panelBorder[0], P.panelBorder[1], P.panelBorder[2], 50);
+  strokeWeight(0.5);
+  rect(x + 20, y + 35, w - 40, h - 55, 4);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GENERATIVE LANDSCAPES
+// ═══════════════════════════════════════════════════════════════
+
+function initParticles() {
+  particles = [];
+  const count = 200;
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: random(620),
+      y: random(400),
+      vx: 0, vy: 0,
+      size: random(1, 4),
+      hue: random(360),
+      life: random(0.5, 1),
+      trail: [],
+    });
+  }
+}
+
+function initFlowField() {
+  flowField = [];
+  const res = 20;
+  const cols = Math.ceil(620 / res);
+  const rows = Math.ceil(400 / res);
+  for (let i = 0; i < cols * rows; i++) {
+    flowField.push({ angle: 0, mag: 0 });
+  }
+}
+
+function renderLandscape() {
+  landscapeLayer.colorMode(HSB, 360, 100, 100, 100);
+  landscapeLayer.noStroke();
+
+  // Fade background
+  landscapeLayer.fill(0, 0, 5, 8);
+  landscapeLayer.rect(0, 0, 620, 400);
+
+  // Update flow field
+  const res = 20;
+  const cols = Math.ceil(620 / res);
+  const rows = Math.ceil(400 / res);
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
+      const n = noise(i * 0.08 * CONFIG.noiseScale, j * 0.08 * CONFIG.noiseScale, time * 0.3);
+      flowField[i + j * cols].angle = n * TWO_PI * 2;
+      flowField[i + j * cols].mag = map(n, 0, 1, 0.5, 2);
+    }
+  }
+
+  // Draw flow field lines (subtle)
+  landscapeLayer.stroke(0, 0, 100, 3);
+  landscapeLayer.strokeWeight(0.5);
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
+      const f = flowField[i + j * cols];
+      const x = i * res + res / 2;
+      const y = j * res + res / 2;
+      const len = res * 0.4;
+      landscapeLayer.line(x, y, x + Math.cos(f.angle) * len, y + Math.sin(f.angle) * len);
+    }
+  }
+
+  // Update and draw particles
+  for (let p of particles) {
+    // Follow flow field
+    const col = Math.floor(p.x / res);
+    const row = Math.floor(p.y / res);
+    if (col >= 0 && col < cols && row >= 0 && row < rows) {
+      const f = flowField[col + row * cols];
+      p.vx += Math.cos(f.angle) * f.mag * 0.1;
+      p.vy += Math.sin(f.angle) * f.mag * 0.1;
+    }
+
+    // Noise-based hue shift
+    p.hue = (p.hue + noise(p.x * 0.01, p.y * 0.01, time) * 2) % 360;
+
+    // Update position
+    p.x += p.vx * CONFIG.motionSpeed;
+    p.y += p.vy * CONFIG.motionSpeed;
+    p.vx *= 0.98;
+    p.vy *= 0.98;
+
+    // Wrap
+    if (p.x < 0) p.x = 620;
+    if (p.x > 620) p.x = 0;
+    if (p.y < 0) p.y = 400;
+    if (p.y > 400) p.y = 0;
+
+    // Trail
+    p.trail.push({ x: p.x, y: p.y });
+    if (p.trail.length > 12) p.trail.shift();
+
+    // Draw trail
+    for (let i = 0; i < p.trail.length; i++) {
+      const t = p.trail[i];
+      const alpha = map(i, 0, p.trail.length, 5, 40) * p.life;
+      const sz = map(i, 0, p.trail.length, 0.5, p.size);
+      landscapeLayer.fill((p.hue + 180) % 360, 60, 90, alpha);
+      landscapeLayer.noStroke();
+      landscapeLayer.ellipse(t.x, t.y, sz);
+    }
+  }
+
+  // Draw noise terrain overlay
+  landscapeLayer.noStroke();
+  for (let y = 0; y < 400; y += 8) {
+    for (let x = 0; x < 620; x += 8) {
+      const n = noise(x * 0.015 * CONFIG.noiseScale, y * 0.015 * CONFIG.noiseScale, time * 0.2);
+      if (n > 0.55) {
+        const bri = map(n, 0.55, 1, 10, 30);
+        landscapeLayer.fill(0, 0, 100, bri * 0.3);
+        landscapeLayer.rect(x, y, 8, 8);
+      }
+    }
+  }
+
+  landscapeLayer.colorMode(RGB, 255);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INTERACTIVE DATA VIETNAM
+// ═══════════════════════════════════════════════════════════════
+
+function initVietnamData() {
+  // Vietnam provinces as nodes
+  const provinces = [
+    { name: 'Hanoi', x: 0.35, y: 0.25, pop: 8.1 },
+    { name: 'HCMC', x: 0.45, y: 0.85, pop: 9.0 },
+    { name: 'Da Nang', x: 0.55, y: 0.55, pop: 1.2 },
+    { name: 'Hai Phong', x: 0.38, y: 0.28, pop: 2.0 },
+    { name: 'Can Tho', x: 0.42, y: 0.88, pop: 1.2 },
+    { name: 'Hue', x: 0.52, y: 0.50, pop: 1.1 },
+    { name: 'Nha Trang', x: 0.60, y: 0.72, pop: 0.5 },
+    { name: 'Vinh', x: 0.42, y: 0.38, pop: 0.5 },
+    { name: 'Bien Hoa', x: 0.47, y: 0.82, pop: 1.1 },
+    { name: 'Quy Nhon', x: 0.58, y: 0.62, pop: 0.5 },
+    { name: 'Buon Ma Thuot', x: 0.55, y: 0.68, pop: 0.4 },
+    { name: 'Da Lat', x: 0.55, y: 0.75, pop: 0.4 },
+  ];
+
+  vietnamNodes = provinces.map((p, i) => ({
+    ...p,
+    id: i,
+    x: p.x * 580 + 20,
+    y: p.y * 360 + 20,
+    radius: map(p.pop, 0.4, 9, 8, 22),
+    pulse: random(TWO_PI),
+    connections: [],
+  }));
+
+  // Create connections (nearby cities)
+  vietnamConnections = [];
+  for (let i = 0; i < vietnamNodes.length; i++) {
+    for (let j = i + 1; j < vietnamNodes.length; j++) {
+      const d = dist(vietnamNodes[i].x, vietnamNodes[i].y, vietnamNodes[j].x, vietnamNodes[j].y);
+      if (d < 200) {
+        vietnamConnections.push({ from: i, to: j, strength: map(d, 0, 200, 1, 0.2) });
+        vietnamNodes[i].connections.push(j);
+        vietnamNodes[j].connections.push(i);
+      }
+    }
+  }
+}
+
+function renderDataViz() {
+  dataVizLayer.colorMode(HSB, 360, 100, 100, 100);
+
+  // Fade
+  dataVizLayer.noStroke();
+  dataVizLayer.fill(0, 0, 5, 15);
+  dataVizLayer.rect(0, 0, 620, 400);
+
+  // Draw connections
+  for (let c of vietnamConnections) {
+    const a = vietnamNodes[c.from];
+    const b = vietnamNodes[c.to];
+    const pulse = Math.sin(time * 2 + c.from * 0.5) * 0.3 + 0.7;
+    dataVizLayer.stroke(200, 40, 80, c.strength * 20 * pulse);
+    dataVizLayer.strokeWeight(0.8);
+    dataVizLayer.line(a.x, a.y, b.x, b.y);
+
+    // Data flow particles along connections
+    const flowT = (time * 0.5 + c.from * 0.3) % 1;
+    const fx = lerp(a.x, b.x, flowT);
+    const fy = lerp(a.y, b.y, flowT);
+    dataVizLayer.noStroke();
+    dataVizLayer.fill(180, 80, 100, 60);
+    dataVizLayer.ellipse(fx, fy, 3);
+  }
+
+  // Draw nodes
+  for (let n of vietnamNodes) {
+    n.pulse += 0.02;
+    const pulseSize = Math.sin(n.pulse) * 2;
+
+    // Glow
+    dataVizLayer.noStroke();
+    dataVizLayer.fill(200, 60, 90, 10);
+    dataVizLayer.ellipse(n.x, n.y, n.radius * 2.5 + pulseSize);
+
+    // Node
+    dataVizLayer.fill(180, 50, 90, 70);
+    dataVizLayer.ellipse(n.x, n.y, n.radius + pulseSize);
+
+    // Center dot
+    dataVizLayer.fill(0, 0, 100, 90);
+    dataVizLayer.ellipse(n.x, n.y, 4);
+
+    // Label
+    if (CONFIG.showLabels) {
+      dataVizLayer.fill(0, 0, 100, 60);
+      dataVizLayer.textSize(8);
+      dataVizLayer.textAlign(CENTER);
+      dataVizLayer.text(n.name, n.x, n.y - n.radius - 6);
+      dataVizLayer.text(`${n.pop}M`, n.x, n.y + n.radius + 10);
+    }
+  }
+
+  // Draw bar chart on the side
+  drawBarChart();
+
+  dataVizLayer.colorMode(RGB, 255);
+  dataVizLayer.textAlign(LEFT);
+}
+
+function drawBarChart() {
+  const barX = 420;
+  const barW = 180;
+  const barH = 120;
+  const barY = 250;
+
+  // Chart background
+  dataVizLayer.noStroke();
+  dataVizLayer.fill(0, 0, 10, 40);
+  dataVizLayer.rect(barX - 10, barY - 20, barW + 20, barH + 50, 4);
+
+  // Title
+  dataVizLayer.fill(0, 0, 100, 50);
+  dataVizLayer.textSize(9);
+  dataVizLayer.text('POPULATION (MILLIONS)', barX, barY - 5);
+
+  // Bars
+  const sorted = [...vietnamNodes].sort((a, b) => b.pop - a.pop).slice(0, 5);
+  const maxPop = sorted[0].pop;
+  const bw = barW / sorted.length - 8;
+
+  for (let i = 0; i < sorted.length; i++) {
+    const s = sorted[i];
+    const h = map(s.pop, 0, maxPop, 5, barH);
+    const x = barX + i * (bw + 8);
+    const hue = map(i, 0, sorted.length, 180, 280);
+
+    // Bar
+    dataVizLayer.fill(hue, 50, 80, 50);
+    dataVizLayer.noStroke();
+    dataVizLayer.rect(x, barY + barH - h, bw, h, 2);
+
+    // Value
+    dataVizLayer.fill(0, 0, 100, 60);
+    dataVizLayer.textSize(7);
+    dataVizLayer.text(s.pop.toFixed(1), x + bw / 2 - 8, barY + barH - h - 4);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AUTOMATED MOTION
+// ═══════════════════════════════════════════════════════════════
+
+function initMotionPaths() {
+  motionPaths = [];
+  // Create animated motion paths
+  for (let i = 0; i < 5; i++) {
+    const path = [];
+    const cx = 230 + random(-80, 80);
+    const cy = 200 + random(-80, 80);
+    const r = 60 + random(40);
+    const points = 60;
+    for (let j = 0; j < points; j++) {
+      const angle = map(j, 0, points, 0, TWO_PI);
+      const wobble = Math.sin(angle * 3 + i) * 15;
+      path.push({
+        x: cx + Math.cos(angle) * (r + wobble),
+        y: cy + Math.sin(angle) * (r + wobble),
+      });
+    }
+    motionPaths.push({ path, color: i, speed: 0.3 + random(0.2) });
+  }
+}
+
+function renderMotion() {
+  motionLayer.colorMode(HSB, 360, 100, 100, 100);
+
+  // Fade
+  motionLayer.noStroke();
+  motionLayer.fill(0, 0, 5, 20);
+  motionLayer.rect(0, 0, 460, 400);
+
+  // Draw motion paths
+  for (let p of motionPaths) {
+    const hue = map(p.color, 0, motionPaths.length, 0, 300);
+    const idx = Math.floor(motionIndex * p.speed) % p.path.length;
+
+    // Draw path trail
+    motionLayer.noFill();
+    motionLayer.strokeWeight(1.5);
+    for (let i = 0; i < p.path.length - 1; i++) {
+      const alpha = map(i, 0, p.path.length, 5, 30);
+      motionLayer.stroke(hue, 60, 90, alpha);
+      motionLayer.line(p.path[i].x, p.path[i].y, p.path[i + 1].x, p.path[i + 1].y);
+    }
+
+    // Draw moving dot
+    const pos = p.path[idx];
+    motionLayer.noStroke();
+    motionLayer.fill(hue, 80, 100, 80);
+    motionLayer.ellipse(pos.x, pos.y, 8);
+    motionLayer.fill(hue, 40, 100, 30);
+    motionLayer.ellipse(pos.x, pos.y, 16);
+  }
+
+  // Update motion index
+  motionIndex += CONFIG.motionSpeed;
+
+  // Draw export info
+  motionLayer.fill(0, 0, 100, 40);
+  motionLayer.textSize(9);
+  motionLayer.textAlign(CENTER);
+  motionLayer.text('MOTION PATHS: ' + motionPaths.length, 230, 380);
+  motionLayer.text('FRAME: ' + Math.floor(motionIndex), 230, 395);
+
+  motionLayer.colorMode(RGB, 255);
+  motionLayer.textAlign(LEFT);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WORKFLOW
+// ═══════════════════════════════════════════════════════════════
+
+function drawWorkflow(x, y, w, h) {
+  noStroke();
+  fill(P.panel[0], P.panel[1], P.panel[2], 180);
+  rect(x, y, w, h, 8);
+
+  noFill();
+  stroke(P.panelBorder[0], P.panelBorder[1], P.panelBorder[2], 80);
+  strokeWeight(1);
+  rect(x, y, w, h, 8);
+
+  // Title
+  fill(P.textDim[0], P.textDim[1], P.textDim[2]);
+  textSize(10);
+  textStyle(BOLD);
+  text('PROCESS WORKFLOW', x + 15, y + 18);
+
+  // Workflow steps
+  const steps = [
+    { label: 'CONCEPT', icon: '💡', color: P.accent },
+    { label: 'DESIGN', icon: '🎨', color: P.accent2 },
+    { label: 'CODE', icon: '⚡', color: P.highlight },
+    { label: 'PREVIEW', icon: '👁️', color: P.accent },
+    { label: 'EXPORT', icon: '📤', color: P.accent2 },
+    { label: 'VERIFY', icon: '✅', color: P.highlight },
+  ];
+
+  const stepW = (w - 60) / steps.length;
+  const cy = y + 55;
+
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i];
+    const sx = x + 30 + i * stepW;
+
+    // Connector line
+    if (i < steps.length - 1) {
+      const progress = Math.min(1, (time * 0.5 + i * 0.3) % (steps.length - 1));
+      const lineProgress = i < progress ? Math.min(1, progress - i) : 0;
+      stroke(P.panelBorder[0], P.panelBorder[1], P.panelBorder[2], 60);
+      strokeWeight(1);
+      line(sx + 30, cy, sx + stepW - 10, cy);
+
+      // Animated dot on connector
+      if (lineProgress > 0 && lineProgress < 1) {
+        const dotX = lerp(sx + 30, sx + stepW - 10, lineProgress);
+        noStroke();
+        fill(s.color[0], s.color[1], s.color[2], 150);
+        ellipse(dotX, cy, 6);
+      }
+    }
+
+    // Step circle
+    const pulse = Math.sin(time * 2 + i * 0.8) * 2;
+    noStroke();
+    fill(s.color[0], s.color[1], s.color[2], 20);
+    ellipse(sx + 15, cy, 30 + pulse);
+    fill(s.color[0], s.color[1], s.color[2], 60);
+    ellipse(sx + 15, cy, 18);
+
+    // Icon
+    fill(P.text[0], P.text[1], P.text[2]);
+    textSize(10);
+    textStyle(NORMAL);
+    text(s.icon, sx + 8, cy + 4);
+
+    // Label
+    fill(P.textDim[0], P.textDim[1], P.textDim[2]);
+    textSize(8);
+    text(s.label, sx + 2, cy + 22);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONTROL PANEL
+// ═══════════════════════════════════════════════════════════════
+
+function initUI() {
+  // Slider definitions
+  sliders = {
+    seed: { x: 50, y: 710, w: 200, min: 1, max: 9999, value: CONFIG.seed, label: 'SEED' },
+    motion: { x: 50, y: 760, w: 200, min: 0, max: 3, value: 1, label: 'MOTION' },
+    density: { x: 50, y: 810, w: 200, min: 0.1, max: 3, value: 1, label: 'DENSITY' },
+    noise: { x: 50, y: 860, w: 200, min: 0.1, max: 5, value: 1, label: 'NOISE' },
+  };
+}
+
+function drawControlPanel(x, y, w, h) {
+  noStroke();
+  fill(P.panel[0], P.panel[1], P.panel[2], 180);
+  rect(x, y, w, h, 8);
+
+  noFill();
+  stroke(P.panelBorder[0], P.panelBorder[1], P.panelBorder[2], 80);
+  strokeWeight(1);
+  rect(x, y, w, h, 8);
+
+  // Title
+  fill(P.text[0], P.text[1], P.text[2]);
+  textSize(12);
+  textStyle(BOLD);
+  text('CONTROL PANEL', x + 15, y + 20);
+
+  // Draw sliders
+  for (let key in sliders) {
+    const s = sliders[key];
+    drawSlider(s);
+  }
+
+  // Color scheme buttons
+  const schemes = ['CYBER', 'WARM', 'OCEAN', 'NEON'];
+  const schemeX = 300;
+  fill(P.textDim[0], P.textDim[1], P.textDim[2]);
+  textSize(9);
+  text('COLOR SCHEME', schemeX, y + 35);
+
+  for (let i = 0; i < schemes.length; i++) {
+    const bx = schemeX + i * 90;
+    const by = y + 45;
+    const selected = CONFIG.colorScheme === i;
+    noStroke();
+    fill(selected ? P.accent[0] : P.panelBorder[0],
+         selected ? P.accent[1] : P.panelBorder[1],
+         selected ? P.accent[2] : P.panelBorder[2],
+         selected ? 80 : 40);
+    rect(bx, by, 80, 28, 4);
+    fill(selected ? P.text[0] : P.textDim[0],
+         selected ? P.text[1] : P.textDim[1],
+         selected ? P.text[2] : P.textDim[2]);
+    textSize(9);
+    text(schemes[i], bx + 15, by + 18);
+  }
+
+  // Action buttons
+  const actions = [
+    { label: 'VIEW SKETCH', x: 700, y: y + 30, color: P.accent },
+    { label: 'RANDOM SEED', x: 850, y: y + 30, color: P.accent2 },
+    { label: 'PAUSE', x: 1000, y: y + 30, color: P.highlight },
+    { label: 'EXPORT PNG', x: 1130, y: y + 30, color: [16, 185, 129] },
+    { label: 'EXPORT GIF', x: 1280, y: y + 30, color: [245, 158, 11] },
+  ];
+
+  for (let a of actions) {
+    noStroke();
+    fill(a.color[0], a.color[1], a.color[2], 60);
+    rect(a.x, a.y, 120, 32, 6);
+    fill(a.color[0], a.color[1], a.color[2]);
+    textSize(10);
+    textStyle(BOLD);
+    text(a.label, a.x + 12, a.y + 20);
+  }
+
+  // Info panel
+  fill(P.panel[0], P.panel[1], P.panel[2], 100);
+  rect(700, y + 75, 500, 280, 8);
+
+  fill(P.textDim[0], P.textDim[1], P.textDim[2]);
+  textSize(9);
+  textStyle(NORMAL);
+  const info = [
+    'HERMES AGENT CREATIVE PIPELINE v2.0',
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+    `Resolution: 1920 × 1080`,
+    `Renderer: p5.js ${p5.VERSION}`,
+    `Seed: ${CONFIG.seed}`,
+    `Color Scheme: ${['CYBER', 'WARM', 'OCEAN', 'NEON'][CONFIG.colorScheme]}`,
+    `Particles: ${particles.length}`,
+    `Flow Field: ${flowField.length} vectors`,
+    `Data Nodes: ${vietnamNodes.length} provinces`,
+    `Motion Paths: ${motionPaths.length}`,
+    '',
+    'KEYBOARD SHORTS:',
+    '  [S] Save PNG  |  [G] Save GIF',
+    '  [R] Random Seed  |  [Space] Pause',
+    '  [1-4] Color Scheme  |  [H] Toggle UI',
+  ];
+  for (let i = 0; i < info.length; i++) {
+    text(info[i], 720, y + 95 + i * 16);
+  }
+}
+
+function drawSlider(s) {
+  // Label
+  fill(P.textDim[0], P.textDim[1], P.textDim[2]);
+  textSize(9);
+  textStyle(BOLD);
+  text(s.label, s.x, s.y - 5);
+
+  // Track
+  noStroke();
+  fill(P.panelBorder[0], P.panelBorder[1], P.panelBorder[2], 40);
+  rect(s.x, s.y, s.w, 8, 4);
+
+  // Fill
+  const t = map(s.value, s.min, s.max, 0, 1);
+  fill(P.accent[0], P.accent[1], P.accent[2], 120);
+  rect(s.x, s.y, s.w * t, 8, 4);
+
+  // Handle
+  fill(P.accent[0], P.accent[1], P.accent[2]);
+  ellipse(s.x + s.w * t, s.y + 4, 12);
+
+  // Value
+  fill(P.text[0], P.text[1], P.text[2]);
+  textSize(8);
+  text(s.value.toFixed(1), s.x + s.w + 10, s.y + 8);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UI OVERLAY
+// ═══════════════════════════════════════════════════════════════
+
+function drawUIOverlay() {
+  // Corner decorations
+  noFill();
+  stroke(P.accent[0], P.accent[1], P.accent[2], 30);
+  strokeWeight(1);
+
+  // Top-left
+  line(10, 10, 40, 10);
+  line(10, 10, 10, 40);
+
+  // Top-right
+  line(width - 10, 10, width - 40, 10);
+  line(width - 10, 10, width - 10, 40);
+
+  // Bottom-left
+  line(10, height - 10, 40, height - 10);
+  line(10, height - 10, 10, height - 40);
+
+  // Bottom-right
+  line(width - 10, height - 10, width - 40, height - 10);
+  line(width - 10, height - 10, width - 10, height - 40);
+
+  // Version watermark
+  fill(P.textDim[0], P.textDim[1], P.textDim[2], 20);
+  textSize(8);
+  text('HERMES AGENT © 2026 — CREATIVE PIPELINE', width - 280, height - 15);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INTERACTION
+// ═══════════════════════════════════════════════════════════════
+
+function mousePressed() {
+  // Check slider interaction
+  for (let key in sliders) {
+    const s = sliders[key];
+    if (mouseX >= s.x && mouseX <= s.x + s.w && mouseY >= s.y - 5 && mouseY <= s.y + 15) {
+      const t = map(mouseX, s.x, s.x + s.w, 0, 1);
+      s.value = map(t, 0, 1, s.min, s.max);
+      updateFromSlider(key, s.value);
+      return;
+    }
+  }
+
+  // Check color scheme buttons
+  const schemeX = 300;
+  for (let i = 0; i < 4; i++) {
+    const bx = schemeX + i * 90;
+    if (mouseX >= bx && mouseX <= bx + 80 && mouseY >= 755 && mouseY <= 783) {
+      CONFIG.colorScheme = i;
+      P = Object.values(PALETTES)[i];
+      return;
+    }
+  }
+
+  // Check action buttons
+  const actions = [
+    { label: 'VIEW SKETCH', x: 700, y: 710, action: () => { CONFIG.seed = Math.floor(random(9999)); randomSeed(CONFIG.seed); noiseSeed(CONFIG.seed); initParticles(); } },
+    { label: 'RANDOM SEED', x: 850, y: 710, action: () => { CONFIG.seed = Math.floor(random(9999)); randomSeed(CONFIG.seed); noiseSeed(CONFIG.seed); initParticles(); } },
+    { label: 'PAUSE', x: 1000, y: 710, action: () => { isPaused = !isPaused; } },
+    { label: 'EXPORT PNG', x: 1130, y: 710, action: () => { saveCanvas('hermes_portfolio', 'png'); } },
+    { label: 'EXPORT GIF', x: 1280, y: 710, action: () => { saveGif('hermes_portfolio', 3); } },
+  ];
+
+  for (let a of actions) {
+    if (mouseX >= a.x && mouseX <= a.x + 120 && mouseY >= a.y && mouseY <= a.y + 32) {
+      a.action();
+      return;
+    }
+  }
+}
+
+function mouseDragged() {
+  for (let key in sliders) {
+    const s = sliders[key];
+    if (mouseY >= s.y - 10 && mouseY <= s.y + 20) {
+      const t = constrain(map(mouseX, s.x, s.x + s.w, 0, 1), 0, 1);
+      s.value = map(t, 0, 1, s.min, s.max);
+      updateFromSlider(key, s.value);
+    }
+  }
+}
+
+function updateFromSlider(key, value) {
+  switch (key) {
+    case 'seed':
+      CONFIG.seed = Math.floor(value);
+      randomSeed(CONFIG.seed);
+      noiseSeed(CONFIG.seed);
+      initParticles();
+      break;
+    case 'motion':
+      CONFIG.motionSpeed = value;
+      break;
+    case 'density':
+      CONFIG.particleDensity = value;
+      break;
+    case 'noise':
+      CONFIG.noiseScale = value;
+      break;
+  }
+}
+
+function keyPressed() {
+  if (key === 's' || key === 'S') saveCanvas('hermes_portfolio', 'png');
+  if (key === 'g' || key === 'G') saveGif('hermes_portfolio', 3);
+  if (key === 'r' || key === 'R') {
+    CONFIG.seed = Math.floor(random(9999));
+    randomSeed(CONFIG.seed);
+    noiseSeed(CONFIG.seed);
+    initParticles();
+  }
+  if (key === ' ') isPaused = !isPaused;
+  if (key === 'h' || key === 'H') showViewer = !showViewer;
+  if (key === '1') { CONFIG.colorScheme = 0; P = PALETTES.cyber; }
+  if (key === '2') { CONFIG.colorScheme = 1; P = PALETTES.warm; }
+  if (key === '3') { CONFIG.colorScheme = 2; P = PALETTES.ocean; }
+  if (key === '4') { CONFIG.colorScheme = 3; P = PALETTES.neon; }
+}
+</script>
+</body>
+</html>
