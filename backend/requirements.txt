@@ -11,3 +11,5 @@ edge-tts==7.2.7
 stripe==11.0.0
 PyJWT==2.10.0
 bcrypt==4.2.0
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9

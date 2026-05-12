@@ -20,8 +20,16 @@ load_dotenv()
 app = FastAPI(
     title="AI Content Generator",
     description="Generate e-commerce content with AI — text + video + audio",
-    version="2.0.0"
+    version="2.1.0"
 )
+
+# Import and include skill routes
+try:
+    from routes_skills import router as skills_router
+    app.include_router(skills_router)
+    logger.info("✓ Skill routes loaded")
+except Exception as e:
+    logger.warning(f"⚠ Skill routes not loaded: {e}")
 
 
 @app.get("/")
