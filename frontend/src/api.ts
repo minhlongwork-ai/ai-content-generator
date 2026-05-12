@@ -35,3 +35,35 @@ export async function apiGenerate(
     body: JSON.stringify(body),
   });
 }
+
+// --- Skill System API ---
+
+export async function apiGetSkills(): Promise<any> {
+  return apiFetch('/api/skills');
+}
+
+export async function apiGetSkillConfig(skillName: string): Promise<any> {
+  return apiFetch(`/api/skills/${skillName}/config`);
+}
+
+export async function apiUpdateSkillConfig(skillName: string, config: Record<string, any>): Promise<any> {
+  return apiFetch(`/api/skills/${skillName}/config`, {
+    method: 'POST',
+    body: JSON.stringify(config),
+  });
+}
+
+export async function apiGenerateWithSkill(skillName: string, body: Record<string, any>): Promise<any> {
+  return apiFetch(`/api/skills/${skillName}/generate`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function apiGetHistory(limit = 10): Promise<any> {
+  return apiFetch(`/api/skills/generations/history?limit=${limit}`);
+}
+
+export async function apiGetAnalytics(): Promise<any> {
+  return apiFetch('/api/skills/analytics');
+}

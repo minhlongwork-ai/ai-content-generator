@@ -1,7 +1,8 @@
-/* src/components/ProductDescription.tsx — Professional Layout */
+/* src/components/ProductDescription.tsx — Professional Layout + Quality Report */
 import { useState } from 'react';
 import { apiGenerate } from '../api';
 import { IconFileText, IconCheck, IconCopy, IconSparkles } from './Icons';
+import QualityReport from './QualityReport';
 
 interface ProductResult {
   headline?: string;
@@ -9,6 +10,9 @@ interface ProductResult {
   description?: string;
   seo_keywords?: string[];
   raw_content?: string;
+  quality_score?: number;
+  quality_checks?: { name: string; passed: boolean; message?: string }[];
+  skill_name?: string;
 }
 
 export default function ProductDescription({ token: _token }: { token?: string | null }) {
@@ -138,6 +142,16 @@ export default function ProductDescription({ token: _token }: { token?: string |
               <div className="result-header">
                 <h3><IconCheck size={18} /> Nội Dung Đã Tạo</h3>
               </div>
+
+              {/* Quality Report — hiện nếu có score từ skill system */}
+              {result.quality_score !== undefined && (
+                <QualityReport
+                  score={result.quality_score}
+                  checks={result.quality_checks}
+                  skillName={result.skill_name}
+                  compact={true}
+                />
+              )}
 
               {result.headline && (
                 <div className="result-block">

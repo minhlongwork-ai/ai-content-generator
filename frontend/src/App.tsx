@@ -11,11 +11,12 @@ import Settings from './components/Settings';
 import AuthModal from './components/AuthModal';
 import AdminDashboard from './components/AdminDashboard';
 import UserProfile from './components/UserProfile';
+import GenerationHistory from './components/GenerationHistory';
 import { ToastContainer } from './components/Toast';
 import { IconSparkles, IconFileText, IconSearch, IconTarget, IconVideo, IconSettings, IconLogOut, IconBarChart, IconShield, IconUsers as IconUser } from './components/Icons';
 import './App.css';
 
-type Page = 'landing' | 'dashboard' | 'product' | 'caption' | 'ad' | 'video' | 'settings' | 'pricing' | 'admin' | 'profile';
+type Page = 'landing' | 'dashboard' | 'product' | 'caption' | 'ad' | 'video' | 'settings' | 'pricing' | 'admin' | 'profile' | 'history';
 
 const navItems: { id: Page; label: string; icon: React.ReactNode; group: string; adminOnly?: boolean }[] = [
   { id: 'dashboard', label: 'Tổng Quan', icon: <IconBarChart size={18} />, group: 'main' },
@@ -23,6 +24,7 @@ const navItems: { id: Page; label: string; icon: React.ReactNode; group: string;
   { id: 'caption', label: 'Caption & SEO', icon: <IconSearch size={18} />, group: 'tools' },
   { id: 'ad', label: 'Quảng Cáo', icon: <IconTarget size={18} />, group: 'tools' },
   { id: 'video', label: 'Video AI', icon: <IconVideo size={18} />, group: 'tools' },
+  { id: 'history', label: 'Lịch Sử', icon: <IconBarChart size={18} />, group: 'tools' },
   { id: 'admin', label: 'Admin', icon: <IconShield size={18} />, group: 'admin', adminOnly: true },
   { id: 'pricing', label: 'Bảng Giá', icon: <IconSparkles size={18} />, group: 'account' },
   { id: 'profile', label: 'Hồ Sơ', icon: <IconUser size={18} />, group: 'account' },
@@ -87,6 +89,7 @@ export default function App() {
       case 'pricing': return <Pricing onSelectPlan={(p) => p === 'auth' ? setShowAuth(true) : setPage('pricing')} userPlan={user?.plan} token={token || undefined} />;
       case 'admin': return isAdmin ? <AdminDashboard token={token || ''} /> : <Dashboard token={token} user={user} />;
       case 'profile': return <UserProfile token={token || ''} user={user} onLogout={handleLogout} />;
+      case 'history': return <GenerationHistory token={token} limit={30} />;
       default: return <Dashboard token={token} user={user} />;
     }
   };

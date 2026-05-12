@@ -1,6 +1,7 @@
-/* src/components/Dashboard.tsx — Professional Dashboard with better visuals */
+/* src/components/Dashboard.tsx — Dashboard với real stats + GenerationHistory */
 import { useState, useEffect } from 'react';
-import { IconZap, IconBarChart, IconTarget, IconTrendingUp, IconFileText, IconSearch, IconTarget as IconTarget2, IconVideo, IconClock } from './Icons';
+import { IconZap, IconBarChart, IconTarget, IconTrendingUp, IconFileText, IconSearch, IconTarget as IconTarget2, IconVideo } from './Icons';
+import GenerationHistory from './GenerationHistory';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -12,36 +13,26 @@ interface DashboardStats {
   favoriteType: string;
 }
 
-interface RecentItem {
-  type: string;
-  product: string;
-  timestamp: string;
-}
-
 interface DashboardProps {
   token?: string | null;
   user?: any;
 }
 
-export default function Dashboard({ user }: DashboardProps) {
-  const [stats] = useState<DashboardStats>({
+export default function Dashboard({ token, user }: DashboardProps) {
+  const [stats, setStats] = useState<DashboardStats>({
     totalGenerations: 0,
     todayGenerations: 0,
     remainingToday: 5,
     plan: 'Miễn Phí',
-    favoriteType: 'Mô Tả Sản Phẩm',
+    favoriteType: '—',
   });
-  const [recentItems] = useState<RecentItem[]>([
-    { type: 'product', product: 'Tai Nghe Không Dây Pro', timestamp: '2 phút trước' },
-    { type: 'caption', product: 'Váy Hoa Mùa Hè', timestamp: '15 phút trước' },
-    { type: 'ad', product: 'Đồng Hồ Thông Minh', timestamp: '1 giờ trước' },
-    { type: 'video', product: 'Bộ Dưỡng Da Hữu Cơ', timestamp: '3 giờ trước' },
-  ]);
   const [backendStatus, setBackendStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+  const [activeTab, setActiveTab] = useState<'overview' | 'history'>('overview');
 
   useEffect(() => {
     checkBackend();
-  }, []);
+    if (token) fetchStats();
+  }, [token]);
 
   const checkBackend = async () => {
     try {
@@ -52,23 +43,28 @@ export default function Dashboard({ user }: DashboardProps) {
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'product': return <IconFileText size={16} />;
-      case 'caption': return <IconSearch size={16} />;
-      case 'ad': return <IconTarget2 size={16} />;
-      case 'video': return <IconVideo size={16} />;
-      default: return <IconFileText size={16} />;
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'product': return 'purple';
-      case 'caption': return 'blue';
-      case 'ad': return 'red';
-      case 'video': return 'green';
-      default: return 'purple';
+  const fetchStats = async () => {
+    try {
+      // Thử lấy analytics từ skill system
+      const res = await fetch(`${API_URL}/api/skills/analytics`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStats({
+          totalGenerations: data.total_generations ?? 0,
+          todayGenerations: data.today_generations ?? 0,
+          remainingToday: data.remaining_today ?? 5,
+          plan: user?.plan || 'Miễn Phí',
+          favoriteType: data.favorite_skill ?? '—',
+        });
+      } else {
+        // Fallback: dùng user info từ auth
+        setStats(prev => ({ ...prev, plan: user?.plan || 'Miễn Phí' }));
+      }
+    } catch {
+      // Backend offline — dùng defaults
+      setStats(prev => ({ ...prev, plan: user?.plan || 'Miễn Phí' }));
     }
   };
 
@@ -78,6 +74,9 @@ export default function Dashboard({ user }: DashboardProps) {
     { id: 'ad', label: 'Tạo Quảng Cáo', icon: <IconTarget2 size={24} />, color: 'red', desc: '3 phiên bản quảng cáo' },
     { id: 'video', label: 'Tạo Kịch Bản', icon: <IconVideo size={24} />, color: 'green', desc: 'Kịch bản video + TTS' },
   ];
+
+  const navigate = (id: string) =>
+    window.dispatchEvent(new CustomEvent('navigate', { detail: id }));
 
   return (
     <div className="dashboard">
@@ -89,110 +88,112 @@ export default function Dashboard({ user }: DashboardProps) {
         </div>
         <div className={`backend-status ${backendStatus}`}>
           <span className="status-dot" />
-          <span>{backendStatus === 'checking' ? 'Đang kiểm tra...' : backendStatus === 'online' ? 'Backend Online' : 'Backend Offline'}</span>
-          {backendStatus === 'offline' && <button className="retry-btn" onClick={checkBackend}>Thử lại</button>}
+          <span>
+            {backendStatus === 'checking'
+              ? 'Đang kiểm tra...'
+              : backendStatus === 'online'
+              ? 'Backend Online'
+              : 'Backend Offline'}
+          </span>
+          {backendStatus === 'offline' && (
+            <button className="retry-btn" onClick={checkBackend}>Thử lại</button>
+          )}
         </div>
       </div>
 
       {/* Stats */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-card-icon purple">
-            <IconZap size={22} />
-          </div>
+          <div className="stat-card-icon purple"><IconZap size={22} /></div>
           <div className="stat-card-value">{stats.todayGenerations}</div>
           <div className="stat-card-label">Tạo Hôm Nay</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon blue">
-            <IconBarChart size={22} />
-          </div>
+          <div className="stat-card-icon blue"><IconBarChart size={22} /></div>
           <div className="stat-card-value">{stats.totalGenerations}</div>
           <div className="stat-card-label">Tổng Số Đã Tạo</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon green">
-            <IconTarget size={22} />
-          </div>
+          <div className="stat-card-icon green"><IconTarget size={22} /></div>
           <div className="stat-card-value">{stats.remainingToday}</div>
           <div className="stat-card-label">Còn Lại Hôm Nay</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon orange">
-            <IconTrendingUp size={22} />
-          </div>
+          <div className="stat-card-icon orange"><IconTrendingUp size={22} /></div>
           <div className="stat-card-value">{stats.plan}</div>
           <div className="stat-card-label">Gói Hiện Tại</div>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="quick-actions">
-        <div className="section-header-small">
-          <h2>Hành Động Nhanh</h2>
-          <p>Chọn loại nội dung bạn muốn tạo</p>
-        </div>
-        <div className="actions-grid">
-          {quickActions.map((action) => (
-            <button
-              key={action.id}
-              className="action-card"
-              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: action.id }))}
-            >
-              <div className={`action-icon-wrap ${action.color}`}>
-                {action.icon}
-              </div>
-              <div className="action-content">
-                <span className="action-label">{action.label}</span>
-                <span className="action-desc">{action.desc}</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="recent-activity">
-        <div className="section-header-small">
-          <h2>Hoạt Động Gần Đây</h2>
-        </div>
-        {recentItems.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">
-              <IconFileText size={32} />
-            </div>
-            <p>Chưa có nội dung nào. Bắt đầu tạo!</p>
-          </div>
-        ) : (
-          <div className="activity-list">
-            {recentItems.map((item, i) => (
-              <div key={i} className="activity-item">
-                <div className={`activity-icon ${getTypeColor(item.type)}`}>
-                  {getTypeIcon(item.type)}
-                </div>
-                <div className="activity-info">
-                  <span className="activity-product">{item.product}</span>
-                  <span className="activity-time"><IconClock size={12} /> {item.timestamp}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Upgrade CTA */}
-      <div className="upgrade-cta">
-        <div className="upgrade-icon">
-          <IconTrendingUp size={28} />
-        </div>
-        <div className="upgrade-content">
-          <h3>Mở Khóa Tạo Không Giới Hạn</h3>
-          <p>Nâng cấp Pro để tạo nội dung không giới hạn, kịch bản video, và truy cập API.</p>
-        </div>
-        <button className="btn-upgrade" onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'pricing' }))}>
-          Xem Gói
+      {/* Tabs: Overview | History */}
+      <div className="dashboard-tabs">
+        <button
+          className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('overview')}
+        >
+          Hành Động Nhanh
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+          onClick={() => setActiveTab('history')}
+        >
+          Lịch Sử Gần Đây
         </button>
       </div>
+
+      {activeTab === 'overview' && (
+        <>
+          {/* Quick Actions */}
+          <div className="quick-actions">
+            <div className="actions-grid">
+              {quickActions.map((action) => (
+                <button
+                  key={action.id}
+                  className="action-card"
+                  onClick={() => navigate(action.id)}
+                >
+                  <div className={`action-icon-wrap ${action.color}`}>{action.icon}</div>
+                  <div className="action-content">
+                    <span className="action-label">{action.label}</span>
+                    <span className="action-desc">{action.desc}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent History (compact) */}
+          <div className="recent-activity">
+            <div className="section-header-small">
+              <h2>Hoạt Động Gần Đây</h2>
+              {token && (
+                <button className="btn-link" onClick={() => setActiveTab('history')}>
+                  Xem tất cả →
+                </button>
+              )}
+            </div>
+            <GenerationHistory token={token} limit={5} compact={true} />
+          </div>
+        </>
+      )}
+
+      {activeTab === 'history' && (
+        <GenerationHistory token={token} limit={20} compact={false} />
+      )}
+
+      {/* Upgrade CTA */}
+      {(!user?.plan || user?.plan === 'free' || user?.plan === 'Miễn Phí') && (
+        <div className="upgrade-cta">
+          <div className="upgrade-icon"><IconTrendingUp size={28} /></div>
+          <div className="upgrade-content">
+            <h3>Mở Khóa Tạo Không Giới Hạn</h3>
+            <p>Nâng cấp Pro để tạo nội dung không giới hạn, kịch bản video, và truy cập API.</p>
+          </div>
+          <button className="btn-upgrade" onClick={() => navigate('pricing')}>
+            Xem Gói
+          </button>
+        </div>
+      )}
     </div>
   );
 }
