@@ -195,6 +195,7 @@ class AIClient:
         """Generate content (OLD way - backward compatibility).
         
         Maps old content_type to new skill names.
+        All 4 content types now use skill system!
         """
         # Map old content_type to skill names
         skill_map = {
@@ -209,7 +210,7 @@ class AIClient:
             # Fallback to old behavior for unmigrated content types
             return await self._generate_legacy(content_type, **kwargs)
         
-        # Use skill system
+        # Use skill system (all 4 content types migrated!)
         result = await self.generate_with_skill(skill_name, kwargs)
         
         # Transform to old format for backward compatibility
