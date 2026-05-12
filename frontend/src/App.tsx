@@ -10,18 +10,19 @@ import VideoScript from './components/VideoScript';
 import Settings from './components/Settings';
 import AuthModal from './components/AuthModal';
 import { ToastContainer } from './components/Toast';
+import { IconSparkles, IconFileText, IconSearch, IconTarget, IconVideo, IconSettings, IconLogOut, IconBarChart } from './components/Icons';
 import './App.css';
 
 type Page = 'landing' | 'dashboard' | 'product' | 'caption' | 'ad' | 'video' | 'settings' | 'pricing';
 
-const navItems: { id: Page; label: string; icon: string; group: string }[] = [
-  { id: 'dashboard', label: 'Tổng Quan', icon: '📊', group: 'main' },
-  { id: 'product', label: 'Mô Tả SP', icon: '📝', group: 'tools' },
-  { id: 'caption', label: 'Caption & SEO', icon: '🔍', group: 'tools' },
-  { id: 'ad', label: 'Quảng Cáo', icon: '🎯', group: 'tools' },
-  { id: 'video', label: 'Video AI', icon: '🎬', group: 'tools' },
-  { id: 'pricing', label: 'Bảng Giá', icon: '💎', group: 'account' },
-  { id: 'settings', label: 'Cài Đặt', icon: '⚙️', group: 'account' },
+const navItems: { id: Page; label: string; icon: React.ReactNode; group: string }[] = [
+  { id: 'dashboard', label: 'Tổng Quan', icon: <IconBarChart size={18} />, group: 'main' },
+  { id: 'product', label: 'Mô Tả SP', icon: <IconFileText size={18} />, group: 'tools' },
+  { id: 'caption', label: 'Caption & SEO', icon: <IconSearch size={18} />, group: 'tools' },
+  { id: 'ad', label: 'Quảng Cáo', icon: <IconTarget size={18} />, group: 'tools' },
+  { id: 'video', label: 'Video AI', icon: <IconVideo size={18} />, group: 'tools' },
+  { id: 'pricing', label: 'Bảng Giá', icon: <IconSparkles size={18} />, group: 'account' },
+  { id: 'settings', label: 'Cài Đặt', icon: <IconSettings size={18} />, group: 'account' },
 ];
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -33,6 +34,8 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   const [showAuth, setShowAuth] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
+
+  const isLanding = page === 'landing';
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -84,12 +87,26 @@ export default function App() {
   const mainNav = navItems.filter((n) => n.group === 'main' || n.group === 'tools');
   const accountNav = navItems.filter((n) => n.group === 'account');
 
+  // Landing page has its own nav, no sidebar needed
+  if (isLanding) {
+    return (
+      <div className="app-landing">
+        <main className="main-content-full">{renderPage()}</main>
+        {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthSuccess={handleAuthSuccess} />}
+        <ToastContainer />
+      </div>
+    );
+  }
+
   return (
     <div className="app-layout">
       <aside className={`sidebar ${sidebarOpen ? 'open' : 'collapsed'}`}>
         <div className="sidebar-header">
           <div className="logo" onClick={() => setPage('landing')}>
-            ✨ <span className="logo-text">AI Content Gen</span>
+            <div className="logo-icon">
+              <IconSparkles size={20} />
+            </div>
+            {sidebarOpen && <span className="logo-text">AI Content Gen</span>}
           </div>
           <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
             {sidebarOpen ? '◀' : '▶'}
@@ -118,8 +135,7 @@ export default function App() {
 
         {sidebarOpen && (
           <div className="sidebar-footer">
-            {/* Theme Toggle */}
-            <button className="theme-toggle" onClick={() => setDarkMode(!darkMode)} title={darkMode ? 'Chế độ sáng' : 'Chế độ tối'}>
+            <button className="theme-toggle" onClick={() => setDarkMode(!darkMode)}>
               {darkMode ? '☀️ Sáng' : '🌙 Tối'}
             </button>
 
@@ -131,7 +147,10 @@ export default function App() {
                   <div className="user-email">{user.email}</div>
                 </div>
                 <div className="plan-badge">{user.plan || 'Miễn Phí'}</div>
-                <button className="btn-sidebar-logout" onClick={handleLogout}>Đăng Xuất</button>
+                <button className="btn-sidebar-logout" onClick={handleLogout}>
+                  <IconLogOut size={14} />
+                  <span>Đăng Xuất</span>
+                </button>
               </>
             ) : (
               <>
@@ -144,7 +163,11 @@ export default function App() {
         )}
       </aside>
 
-      <main className="main-content">{renderPage()}</main>
+      <main className="main-content">
+        <div className="content-wrapper">
+          {renderPage()}
+        </div>
+      </main>
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthSuccess={handleAuthSuccess} />}
       <ToastContainer />

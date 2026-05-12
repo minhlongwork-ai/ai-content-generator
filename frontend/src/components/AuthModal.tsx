@@ -1,6 +1,7 @@
-/* src/components/AuthModal.tsx — Đăng ký / Đăng nhập (Tiếng Việt) */
+/* src/components/AuthModal.tsx — Professional Auth Modal */
 import { useState } from 'react';
 import { showToast } from './Toast';
+import { IconSparkles, IconX } from './Icons';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -43,12 +44,19 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>×</button>
-        <div className="modal-header">
-          <h2>{mode === 'register' ? '✨ Tạo Tài Khoản' : '👋 Chào Mừng Quay Lại'}</h2>
+      <div className="modal auth-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>
+          <IconX size={20} />
+        </button>
+        
+        <div className="auth-modal-header">
+          <div className="auth-logo">
+            <IconSparkles size={28} />
+          </div>
+          <h2>{mode === 'register' ? 'Tạo Tài Khoản' : 'Chào Mừng Quay Lại'}</h2>
           <p>{mode === 'register' ? 'Bắt đầu tạo nội dung miễn phí' : 'Đăng nhập vào tài khoản'}</p>
         </div>
+
         <form onSubmit={handleSubmit}>
           {mode === 'register' && (
             <div className="form-group">
@@ -68,7 +76,8 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
             {loading ? '⏳ Vui lòng chờ...' : mode === 'register' ? 'Tạo Tài Khoản' : 'Đăng Nhập'}
           </button>
         </form>
-        <div className="modal-footer">
+
+        <div className="auth-modal-footer">
           {mode === 'register' ? (
             <p>Đã có tài khoản? <button className="link-btn" onClick={() => setMode('login')}>Đăng Nhập</button></p>
           ) : (

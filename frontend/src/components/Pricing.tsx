@@ -1,6 +1,7 @@
-/* src/components/Pricing.tsx — Bảng giá (Tiếng Việt) */
+/* src/components/Pricing.tsx — Professional Pricing Page */
 import { useState } from 'react';
 import { showToast } from './Toast';
+import { IconCheck, IconSparkles, IconZap, IconShield } from './Icons';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -17,6 +18,7 @@ const plans = [
     price: '0',
     period: 'mãi mãi',
     description: 'Phù hợp để thử nghiệm',
+    icon: <IconShield size={24} />,
     features: [
       '5 lần tạo/ngày',
       'Mô tả sản phẩm',
@@ -35,6 +37,7 @@ const plans = [
     price: '299K',
     period: '/tháng',
     description: 'Cho người bán nghiêm túc',
+    icon: <IconZap size={24} />,
     features: [
       'Tạo nội dung không giới hạn',
       'Tất cả loại nội dung',
@@ -55,6 +58,7 @@ const plans = [
     price: '599K',
     period: '/tháng',
     description: 'Cho đội nhóm & công ty',
+    icon: <IconSparkles size={24} />,
     features: [
       'Tất cả trong Pro',
       'Tạo video AI',
@@ -109,14 +113,17 @@ export default function Pricing({ onSelectPlan, userPlan, token }: PricingProps)
   return (
     <div className="pricing-page">
       <div className="pricing-header">
-        <h1>Bảng Giá Đơn Giản, Minh Bạch</h1>
+        <div className="section-badge">Bảng giá</div>
+        <h1>Chọn gói phù hợp với bạn</h1>
         <p>Bắt đầu miễn phí. Nâng cấp khi bạn sẵn sàng.</p>
         <div className="pricing-toggle">
           <span className={!annual ? 'active' : ''}>Hàng tháng</span>
           <button className={`toggle-switch ${annual ? 'annual' : ''}`} onClick={() => setAnnual(!annual)}>
             <div className="toggle-knob" />
           </button>
-          <span className={annual ? 'active' : ''}>Hàng năm <span className="save-badge">Tiết kiệm 20%</span></span>
+          <span className={annual ? 'active' : ''}>
+            Hàng năm <span className="save-badge">Tiết kiệm 20%</span>
+          </span>
         </div>
       </div>
 
@@ -127,18 +134,32 @@ export default function Pricing({ onSelectPlan, userPlan, token }: PricingProps)
             <div key={plan.id} className={`pricing-card ${plan.popular ? 'popular' : ''} ${isCurrentPlan ? 'current' : ''}`}>
               {plan.popular && <div className="popular-badge">⭐ Phổ Biến Nhất</div>}
               {isCurrentPlan && <div className="current-badge">✓ Gói Hiện Tại</div>}
-              <div className="plan-name">{plan.name}</div>
-              <div className="plan-description">{plan.description}</div>
+              
+              <div className="pricing-card-top">
+                <div className={`plan-icon ${plan.popular ? 'popular' : ''}`}>
+                  {plan.icon}
+                </div>
+                <div className="plan-name">{plan.name}</div>
+                <div className="plan-description">{plan.description}</div>
+              </div>
+
               <div className="plan-price">
                 <span className="currency">₫</span>
-                <span className="amount">{annual && plan.price !== '0' ? Math.round(parseInt(plan.price.replace('K', '')) * 0.8) + 'K' : plan.price}</span>
+                <span className="amount">
+                  {annual && plan.price !== '0' ? Math.round(parseInt(plan.price.replace('K', '')) * 0.8) + 'K' : plan.price}
+                </span>
                 <span className="period">{plan.period}</span>
               </div>
+
               <ul className="plan-features">
                 {plan.features.map((feature, i) => (
-                  <li key={i}><span className="check">✓</span>{feature}</li>
+                  <li key={i}>
+                    <span className="check"><IconCheck size={14} /></span>
+                    {feature}
+                  </li>
                 ))}
               </ul>
+
               <button
                 className={`btn-pricing ${plan.popular ? 'btn-popular' : ''} ${isCurrentPlan ? 'btn-current' : ''}`}
                 onClick={() => handleSelectPlan(plan.id)}
@@ -152,7 +173,10 @@ export default function Pricing({ onSelectPlan, userPlan, token }: PricingProps)
       </div>
 
       <div className="pricing-faq">
-        <h2>Câu Hỏi Thường Gặp</h2>
+        <div className="section-header">
+          <div className="section-badge">FAQ</div>
+          <h2>Câu Hỏi Thường Gặt</h2>
+        </div>
         <div className="faq-grid">
           <div className="faq-item">
             <h4>Tôi có thể hủy bất cứ lúc nào không?</h4>
