@@ -1,7 +1,7 @@
 """FastAPI backend for AI Content Generator."""
 
 import os
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
@@ -113,7 +113,7 @@ async def health():
 
 # ─── Auth Helper ─────────────────────────────────────────────
 
-async def get_user_api_key(authorization: str = None) -> tuple:
+async def get_user_api_key(authorization: str = Header(None)) -> tuple:
     """Extract user API key from JWT token. Returns (api_key, user_email, error)."""
     if not authorization or not authorization.startswith("Bearer "):
         return None, None, None  # No auth = use env key
@@ -140,7 +140,7 @@ async def get_user_api_key(authorization: str = None) -> tuple:
 @app.post("/api/generate/product-description")
 async def generate_product_description(
     request: ProductDescriptionRequest,
-    authorization: str = None
+    authorization: str = Header(None)
 ):
     """Generate product description. Uses user's API key if authenticated."""
     api_key, email, err = await get_user_api_key(authorization)
@@ -173,7 +173,7 @@ async def generate_product_description(
 
 
 @app.post("/api/generate/caption-seo")
-async def generate_caption_seo(request: CaptionSEORequest, authorization: str = None):
+async def generate_caption_seo(request: CaptionSEORequest, authorization: str = Header(None)):
     """Generate SEO caption and title. Uses user's API key if authenticated."""
     api_key, email, err = await get_user_api_key(authorization)
     if err:
@@ -198,7 +198,7 @@ async def generate_caption_seo(request: CaptionSEORequest, authorization: str = 
 
 
 @app.post("/api/generate/ad-copy")
-async def generate_ad_copy(request: AdCopyRequest, authorization: str = None):
+async def generate_ad_copy(request: AdCopyRequest, authorization: str = Header(None)):
     """Generate ad copy variations. Uses user's API key if authenticated."""
     api_key, email, err = await get_user_api_key(authorization)
     if err:
@@ -225,7 +225,7 @@ async def generate_ad_copy(request: AdCopyRequest, authorization: str = None):
 
 
 @app.post("/api/generate/video-script")
-async def generate_video_script(request: VideoScriptRequest, authorization: str = None):
+async def generate_video_script(request: VideoScriptRequest, authorization: str = Header(None)):
     """Generate video script with optional TTS audio. Uses user's API key if authenticated."""
     api_key, email, err = await get_user_api_key(authorization)
     if err:
@@ -342,7 +342,7 @@ class SettingsRequest(BaseModel):
 
 
 @app.get("/api/settings")
-async def get_settings(authorization: str = None):
+async def get_settings(authorization: str = Header(None)):
     """Get current user's settings (with masked API keys)."""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -374,7 +374,7 @@ async def get_settings(authorization: str = None):
 
 
 @app.post("/api/settings")
-async def update_settings(request: SettingsRequest, authorization: str = None):
+async def update_settings(request: SettingsRequest, authorization: str = Header(None)):
     """Update user's settings (API keys, model selection, etc.)."""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -402,7 +402,7 @@ async def update_settings(request: SettingsRequest, authorization: str = None):
 
 
 @app.get("/api/settings/check")
-async def check_settings(authorization: str = None):
+async def check_settings(authorization: str = Header(None)):
     """Check which API keys are configured for current user."""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -487,7 +487,7 @@ async def login(req: LoginRequest):
 
 
 @app.get("/api/auth/me")
-async def get_current_user(authorization: str = None):
+async def get_current_user(authorization: str = Header(None)):
     """Get current user info from JWT token."""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
@@ -512,7 +512,7 @@ async def get_current_user(authorization: str = None):
 
 
 @app.get("/api/auth/stats")
-async def get_stats(authorization: str = None):
+async def get_stats(authorization: str = Header(None)):
     """Get generation stats for current user."""
     if not authorization or not authorization.startswith("Bearer "):
         # Return default free stats
@@ -532,7 +532,7 @@ class CheckoutRequest(BaseModel):
 
 
 @app.post("/api/payment/checkout")
-async def create_subscription_checkout(req: CheckoutRequest, authorization: str = None):
+async def create_subscription_checkout(req: CheckoutRequest, authorization: str = Header(None)):
     """Create a Stripe checkout session for subscription."""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -570,7 +570,7 @@ async def get_plans():
 
 
 @app.get("/api/payment/subscription")
-async def get_my_subscription(authorization: str = None):
+async def get_my_subscription(authorization: str = Header(None)):
     """Get current user's subscription status."""
     if not authorization or not authorization.startswith("Bearer "):
         return {"plan": "free", "status": "active"}
@@ -625,7 +625,7 @@ def get_video_engine(
     return video_engine
 
 
-async def get_user_video_keys(authorization: str = None) -> tuple:
+async def get_user_video_keys(authorization: str = Header(None)) -> tuple:
     """Extract user's video-related API keys from JWT. Returns (keys_dict, email, error)."""
     if not authorization or not authorization.startswith("Bearer "):
         return {}, None, None
@@ -692,7 +692,7 @@ class VideoScriptToVideoRequest(BaseModel):
 
 
 @app.get("/api/video/providers")
-async def get_video_providers(authorization: str = None):
+async def get_video_providers(authorization: str = Header(None)):
     """Get available video generation providers for current user."""
     user_keys, email, err = await get_user_video_keys(authorization)
     engine = get_video_engine(
@@ -722,7 +722,7 @@ async def get_video_prices(duration: int = 5):
 
 
 @app.post("/api/video/generate")
-async def generate_video(request: VideoGenerateRequest, authorization: str = None):
+async def generate_video(request: VideoGenerateRequest, authorization: str = Header(None)):
     """Generate AI video from prompt.
     
     Supports multiple models via fal.ai and Replicate.
@@ -821,7 +821,7 @@ async def generate_video(request: VideoGenerateRequest, authorization: str = Non
 
 
 @app.post("/api/video/script-to-video")
-async def script_to_video(request: VideoScriptToVideoRequest, authorization: str = None):
+async def script_to_video(request: VideoScriptToVideoRequest, authorization: str = Header(None)):
     """Convert a video script to actual video with TTS.
     
     Takes a script from /api/generate/video-script and generates:
@@ -957,21 +957,21 @@ class AdminUserUpdateRequest(BaseModel):
 
 
 @app.get("/api/admin/stats")
-async def admin_stats(authorization: str = None):
+async def admin_stats(authorization: str = Header(None)):
     """Get platform-wide stats (admin only)."""
     await require_admin(authorization)
     return get_admin_stats()
 
 
 @app.get("/api/admin/users")
-async def admin_users(authorization: str = None):
+async def admin_users(authorization: str = Header(None)):
     """Get all users (admin only)."""
     await require_admin(authorization)
     return {"users": get_all_users()}
 
 
 @app.put("/api/admin/users/{email}")
-async def admin_update_user(email: str, req: AdminUserUpdateRequest, authorization: str = None):
+async def admin_update_user(email: str, req: AdminUserUpdateRequest, authorization: str = Header(None)):
     """Update user role/plan (admin only)."""
     await require_admin(authorization)
     
@@ -987,7 +987,7 @@ async def admin_update_user(email: str, req: AdminUserUpdateRequest, authorizati
 
 
 @app.delete("/api/admin/users/{email}")
-async def admin_delete_user(email: str, authorization: str = None):
+async def admin_delete_user(email: str, authorization: str = Header(None)):
     """Delete a user (admin only)."""
     await require_admin(authorization)
     if not delete_user(email):
