@@ -41,6 +41,7 @@ export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [user, setUser] = useState<any>(null);
   const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('register');
   const [darkMode, setDarkMode] = useState(true);
 
   const isLanding = page === 'landing';
@@ -81,7 +82,7 @@ export default function App() {
 
   const renderPage = () => {
     switch (page) {
-      case 'landing': return <Landing onGetStarted={() => token ? setPage('dashboard') : setShowAuth(true)} onViewPricing={() => setPage('pricing')} />;
+      case 'landing': return <Landing onGetStarted={() => { setAuthMode('register'); token ? setPage('dashboard') : setShowAuth(true); }} onLogin={() => { setAuthMode('login'); setShowAuth(true); }} onViewPricing={() => setPage('pricing')} />;
       case 'dashboard': return <Dashboard token={token} user={user} />;
       case 'product': return <ProductDescription token={token} />;
       case 'caption': return <CaptionSEO token={token} />;
@@ -106,7 +107,7 @@ export default function App() {
     return (
       <div className="app-landing">
         <main className="main-content-full">{renderPage()}</main>
-        {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthSuccess={handleAuthSuccess} />}
+        {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthSuccess={handleAuthSuccess} initialMode={authMode} />}
         <ToastContainer />
       </div>
     );

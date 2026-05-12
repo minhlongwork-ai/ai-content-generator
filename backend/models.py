@@ -1,10 +1,11 @@
 """Database models for AI Content Generator.
 
-SQLAlchemy models for skill system tables.
+SQLAlchemy models for skill system tables and marketplace.
 """
 
-from sqlalchemy import Column, Integer, String, Text, Boolean, DECIMAL, TIMESTAMP, JSON, ARRAY, UniqueConstraint, Index
+from sqlalchemy import Column, Integer, String, Text, Boolean, DECIMAL, JSON, UniqueConstraint, Index, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from datetime import datetime
 
@@ -24,13 +25,12 @@ class Skill(Base):
     is_premium = Column(Boolean, default=False, index=True)
     price = Column(DECIMAL(10, 2), default=0.00)
     author = Column(String(100))
-    tags = Column(ARRAY(Text))
-    metadata = Column(JSON)
-    created_at = Column(TIMESTAMP, default=func.now())
-    updated_at = Column(TIMESTAMP, default=func.now(), onupdate=func.now())
+    tags = Column(JSON)
+    skill_metadata = Column(JSON)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     
     def to_dict(self):
-        """Convert to dictionary."""
         return {
             'id': self.id,
             'name': self.name,
@@ -41,10 +41,74 @@ class Skill(Base):
             'price': float(self.price) if self.price else 0.00,
             'author': self.author,
             'tags': self.tags or [],
-            'metadata': self.metadata or {},
+            'metadata': self.skill_metadata or {},
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+
+
+class SkillListing(Base):
+    """Marketplace listings for skills."""
+    
+    __tablename__ = 'skill_listings'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    skill_name = Column(String(100), ForeignKey('skills.name'), unique=True, nullable=False)
+    title = Column(String(200), nullable=False)
+    short_desc = Column(Text)
+    long_desc = Column(Text)
+    cover_image_url = Column(Text)
+    cover_emoji = Column(String(20))
+    price = Column(DECIMAL(10, 2), default=0.00)
+    currency = Column(String(10), default='USD')
+    category = Column(String(50), index=True)
+    tags = Column(JSON)
+    author_id = Column(Integer)
+    author_name = Column(String(100))
+    is_active = Column(Boolean, default=True)
+    is_featured = Column(Boolean, default=False, index=True)
+    total_sales = Column(Integer, default=0)
+    avg_rating = Column(DECIMAL(3, 2), default=0.00)
+    rating_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+
+class SkillReview(Base):
+    """User reviews for marketplace skills."""
+    
+    __tablename__ = 'skill_reviews'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    skill_name = Column(String(100), ForeignKey('skills.name'), nullable=False, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    rating = Column(Integer, nullable=False) # 1-5
+    title = Column(String(200))
+    body = Column(Text)
+    is_verified = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    __table_args__ = (
+        UniqueConstraint('skill_name', 'user_id', name='uq_skill_user_review'),
+    )
+
+
+class SkillInstall(Base):
+    """Tracks which skills a user has installed."""
+    
+    __tablename__ = 'skill_installs'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    skill_name = Column(String(100), ForeignKey('skills.name'), nullable=False)
+    purchase_id = Column(Integer)
+    installed_at = Column(DateTime, default=func.now())
+    is_active = Column(Boolean, default=True)
+    
+    __table_args__ = (
+        UniqueConstraint('user_id', 'skill_name', name='uq_user_skill_install'),
+    )
 
 
 class UserSkillConfig(Base):
@@ -56,25 +120,12 @@ class UserSkillConfig(Base):
     user_id = Column(Integer, nullable=False, index=True)
     skill_name = Column(String(100), nullable=False, index=True)
     config = Column(JSON, nullable=False, default={})
-    created_at = Column(TIMESTAMP, default=func.now())
-    updated_at = Column(TIMESTAMP, default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     
     __table_args__ = (
         UniqueConstraint('user_id', 'skill_name', name='uq_user_skill'),
-        Index('idx_user_skill_configs_user_id', 'user_id'),
-        Index('idx_user_skill_configs_skill_name', 'skill_name'),
     )
-    
-    def to_dict(self):
-        """Convert to dictionary."""
-        return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'skill_name': self.skill_name,
-            'config': self.config or {},
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
-        }
 
 
 class Generation(Base):
@@ -92,30 +143,7 @@ class Generation(Base):
     backend = Column(String(50))
     tokens_used = Column(Integer)
     duration_ms = Column(Integer)
-    created_at = Column(TIMESTAMP, default=func.now(), index=True)
-    
-    __table_args__ = (
-        Index('idx_generations_user_id', 'user_id'),
-        Index('idx_generations_skill_name', 'skill_name'),
-        Index('idx_generations_created_at', 'created_at'),
-        Index('idx_generations_user_skill', 'user_id', 'skill_name'),
-    )
-    
-    def to_dict(self):
-        """Convert to dictionary."""
-        return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'skill_name': self.skill_name,
-            'input_params': self.input_params or {},
-            'output_content': self.output_content or {},
-            'quality_score': self.quality_score or {},
-            'model_used': self.model_used,
-            'backend': self.backend,
-            'tokens_used': self.tokens_used,
-            'duration_ms': self.duration_ms,
-            'created_at': self.created_at.isoformat() if self.created_at else None
-        }
+    created_at = Column(DateTime, default=func.now(), index=True)
 
 
 class SkillPurchase(Base):
@@ -130,27 +158,11 @@ class SkillPurchase(Base):
     payment_method = Column(String(50))
     transaction_id = Column(String(100))
     status = Column(String(20), default='completed')
-    purchased_at = Column(TIMESTAMP, default=func.now(), index=True)
+    purchased_at = Column(DateTime, default=func.now(), index=True)
     
     __table_args__ = (
         UniqueConstraint('user_id', 'skill_name', name='uq_user_skill_purchase'),
-        Index('idx_skill_purchases_user_id', 'user_id'),
-        Index('idx_skill_purchases_skill_name', 'skill_name'),
-        Index('idx_skill_purchases_purchased_at', 'purchased_at'),
     )
-    
-    def to_dict(self):
-        """Convert to dictionary."""
-        return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'skill_name': self.skill_name,
-            'price': float(self.price) if self.price else 0.00,
-            'payment_method': self.payment_method,
-            'transaction_id': self.transaction_id,
-            'status': self.status,
-            'purchased_at': self.purchased_at.isoformat() if self.purchased_at else None
-        }
 
 
 class SkillAnalytics(Base):
@@ -161,23 +173,6 @@ class SkillAnalytics(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     skill_name = Column(String(100), nullable=False, index=True)
     user_id = Column(Integer)
-    event_type = Column(String(50), nullable=False, index=True)  # 'view', 'generate', 'purchase', 'config_update'
-    metadata = Column(JSON)
-    created_at = Column(TIMESTAMP, default=func.now(), index=True)
-    
-    __table_args__ = (
-        Index('idx_skill_analytics_skill_name', 'skill_name'),
-        Index('idx_skill_analytics_event_type', 'event_type'),
-        Index('idx_skill_analytics_created_at', 'created_at'),
-    )
-    
-    def to_dict(self):
-        """Convert to dictionary."""
-        return {
-            'id': self.id,
-            'skill_name': self.skill_name,
-            'user_id': self.user_id,
-            'event_type': self.event_type,
-            'metadata': self.metadata or {},
-            'created_at': self.created_at.isoformat() if self.created_at else None
-        }
+    event_type = Column(String(50), nullable=False, index=True)
+    analytics_metadata = Column(JSON)
+    created_at = Column(DateTime, default=func.now(), index=True)

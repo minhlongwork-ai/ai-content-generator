@@ -1,5 +1,4 @@
 /* src/components/SkillCard.tsx — Card hiển thị một skill trong marketplace */
-
 import { IconSparkles, IconCheck } from './Icons';
 
 export interface SkillListing {
@@ -32,119 +31,52 @@ interface SkillCardProps {
 
 function StarRating({ rating, count }: { rating: number; count: number }) {
   return (
-    <div className="skill-rating">
-      {[1, 2, 3, 4, 5].map((s) => (
-        <span key={s} className={`star ${s <= Math.round(rating) ? 'filled' : ''}`}>★</span>
-      ))}
-      {count > 0 && <span className="rating-count">({count})</span>}
+    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+      <span style={{ color: '#ffbd2e' }}>★</span>
+      <span>{rating.toFixed(1)}</span>
+      <span>({count})</span>
     </div>
   );
 }
 
-function PriceBadge({ price, currency = 'USD', isPremium, comingSoon }: {
-  price: number;
-  currency?: string;
-  isPremium?: boolean;
-  comingSoon?: boolean;
-}) {
-  if (comingSoon) {
-    return <span className="price-badge coming-soon">Sắp Ra Mắt</span>;
-  }
-  if (price === 0) {
-    return <span className="price-badge free">Miễn Phí</span>;
-  }
-  return (
-    <span className="price-badge premium">
-      {currency === 'USD' ? '$' : currency}{price.toFixed(2)}
-      {isPremium && ' ✦'}
-    </span>
-  );
-}
-
 function CategoryLabel({ category }: { category: string }) {
-  const map: Record<string, { label: string; color: string }> = {
-    ecommerce:    { label: '🛒 E-commerce',   color: 'blue' },
-    'social-media': { label: '📱 Social Media', color: 'pink' },
-    advertising:  { label: '🎯 Advertising',  color: 'red' },
-    video:        { label: '🎬 Video',        color: 'green' },
+  const map: Record<string, string> = {
+    ecommerce: '🛒 E-commerce',
+    'social-media': '📱 Social Media',
+    advertising: '🎯 Advertising',
+    video: '🎬 Video',
   };
-  const cat = map[category] || { label: category, color: 'gray' };
-  return <span className={`category-label category-${cat.color}`}>{cat.label}</span>;
+  return <span className="skill-category-badge">{map[category] || category}</span>;
 }
 
 export default function SkillCard({ listing, onClick, onInstall, installing }: SkillCardProps) {
-  const isFree = listing.price === 0 && !listing.is_premium;
-
   return (
-    <div
-      className={`skill-card ${listing.is_featured ? 'featured' : ''} ${listing.coming_soon ? 'coming-soon-card' : ''}`}
-      onClick={() => onClick?.(listing)}
-    >
-      {/* Featured ribbon */}
-      {listing.is_featured && !listing.coming_soon && (
-        <div className="skill-card-ribbon">⭐ Nổi Bật</div>
-      )}
-
-      {/* Cover */}
-      <div className="skill-card-cover">
-        <span className="skill-card-emoji">{listing.cover_emoji || '🤖'}</span>
-        <div className="skill-card-overlay">
+    <div className={`skill-card-modern ${listing.is_featured ? 'is-featured' : ''}`} onClick={() => onClick?.(listing)}>
+      <div className="skill-card-icon-wrap">
+        <span style={{ fontSize: '1.5rem' }}>{listing.cover_emoji || '🤖'}</span>
+      </div>
+      
+      <div className="skill-card-content">
+        <div className="skill-card-header">
+          <h3 className="skill-title-text">{listing.title}</h3>
           <CategoryLabel category={listing.category} />
         </div>
-      </div>
-
-      {/* Body */}
-      <div className="skill-card-body">
-        <div className="skill-card-top">
-          <h3 className="skill-card-title">{listing.title}</h3>
-          <PriceBadge
-            price={listing.price}
-            currency={listing.currency}
-            isPremium={listing.is_premium}
-            comingSoon={listing.coming_soon}
-          />
-        </div>
-
-        <p className="skill-card-desc">{listing.short_desc}</p>
-
-        {/* Tags */}
-        <div className="skill-card-tags">
-          {listing.tags.slice(0, 3).map((tag) => (
-            <span key={tag} className="skill-tag">#{tag}</span>
-          ))}
-        </div>
-
-        {/* Footer */}
+        
+        <p className="skill-desc-text">{listing.short_desc}</p>
+        
         <div className="skill-card-footer">
           <StarRating rating={listing.avg_rating} count={listing.rating_count} />
-
-          <div className="skill-card-action" onClick={(e) => e.stopPropagation()}>
+          
+          <div className="skill-action-area" onClick={e => e.stopPropagation()}>
             {listing.is_installed ? (
-              <span className="installed-badge">
-                <IconCheck size={13} /> Đã Cài
-              </span>
-            ) : listing.coming_soon ? (
-              <button className="btn-skill btn-skill-disabled" disabled>
-                Sắp Có
-              </button>
-            ) : isFree ? (
-              <button
-                className="btn-skill btn-skill-install"
-                disabled={installing}
-                onClick={() => onInstall?.(listing)}
-              >
-                {installing ? (
-                  <><span className="spinner-tiny" /> Đang cài...</>
-                ) : (
-                  <><IconSparkles size={13} /> Cài Miễn Phí</>
-                )}
-              </button>
+              <div className="installed-indicator"><IconCheck size={14} /></div>
             ) : (
-              <button
-                className="btn-skill btn-skill-buy"
+              <button 
+                className="btn-install-small"
                 onClick={() => onInstall?.(listing)}
+                disabled={installing}
               >
-                Mua ${listing.price}
+                {installing ? '...' : (listing.price === 0 ? 'Free' : `$${listing.price}`)}
               </button>
             )}
           </div>

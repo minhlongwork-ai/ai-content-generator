@@ -8,10 +8,11 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 interface AuthModalProps {
   onClose: () => void;
   onAuthSuccess: (token: string, user: any) => void;
+  initialMode?: 'login' | 'register';
 }
 
-export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
-  const [mode, setMode] = useState<'login' | 'register'>('register');
+export default function AuthModal({ onClose, onAuthSuccess, initialMode = 'register' }: AuthModalProps) {
+  const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
