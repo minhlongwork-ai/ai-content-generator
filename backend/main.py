@@ -31,6 +31,14 @@ try:
 except Exception as e:
     logger.warning(f"⚠ Skill routes not loaded: {e}")
 
+# Import and include marketplace routes
+try:
+    from routes_marketplace import router as marketplace_router
+    app.include_router(marketplace_router)
+    logger.info("✓ Marketplace routes loaded")
+except Exception as e:
+    logger.warning(f"⚠ Marketplace routes not loaded: {e}")
+
 
 @app.get("/")
 async def root():
