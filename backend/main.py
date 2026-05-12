@@ -402,7 +402,8 @@ async def register(req: RegisterRequest):
                 "id": user["id"],
                 "email": user["email"],
                 "name": user["name"],
-                "plan": user["plan"],
+                "plan": user.get("plan", "free"),
+                "role": user.get("role", "user"),
             },
         }
     except ValueError as e:
@@ -423,7 +424,8 @@ async def login(req: LoginRequest):
             "id": user["id"],
             "email": user["email"],
             "name": user["name"],
-            "plan": user["plan"],
+            "plan": user.get("plan", "free"),
+            "role": user.get("role", "user"),
         },
     }
 
@@ -446,7 +448,8 @@ async def get_current_user(authorization: str = None):
             "id": user["id"],
             "email": user["email"],
             "name": user["name"],
-            "plan": user["plan"],
+            "plan": user.get("plan", "free"),
+            "role": user.get("role", "user"),
         },
         "stats": stats,
     }

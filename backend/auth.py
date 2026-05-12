@@ -52,6 +52,7 @@ def create_user(email: str, password: str, name: str = "") -> dict:
         "name": name or email.split("@")[0],
         "password_hash": hash_password(password),
         "plan": "free",
+        "role": "user",
         "created_at": time.time(),
         "generations_today": 0,
         "generations_total": 0,
@@ -90,7 +91,8 @@ def create_token(user: dict) -> str:
     payload = {
         "sub": user["id"],
         "email": user["email"],
-        "plan": user["plan"],
+        "plan": user.get("plan", "free"),
+        "role": user.get("role", "user"),
         "exp": time.time() + JWT_EXPIRY_HOURS * 3600,
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
