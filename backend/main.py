@@ -327,9 +327,7 @@ async def get_voices():
 
 # ─── Settings Endpoints ─────────────────────────────────────
 
-from settings_manager import (
-    load_settings, save_settings, get_masked_settings, check_api_keys
-)
+from settings_manager import load_settings
 
 
 class SettingsRequest(BaseModel):
@@ -398,9 +396,23 @@ async def update_settings(request: SettingsRequest, authorization: str = None):
 
 
 @app.get("/api/settings/check")
-async def check_settings():
-    """Check which API keys are configured."""
-    return check_api_keys()
+async def check_settings(authorization: str = None):
+    """Check which API keys are configured for current user."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    token = authorization.split(" ", 1)[1]
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    user = get_user_by_id(payload["sub"])
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    email = user.get("email", "")
+    user_keys = get_user_api_keys(email)
+    return {k: bool(v) for k, v in user_keys.items() if "API_KEY" in k}
 
 
 # ─── Auth Endpoints ──────────────────────────────────────────
@@ -975,42 +987,3 @@ async def admin_delete_user(email: str, authorization: str = None):
     if not delete_user(email):
         raise HTTPException(status_code=404, detail="User not found")
     return {"success": True, "message": f"User {email} deleted"}
-
-
-@app.post("/api/v1/admin/reset")
-async def reset_admin():
-    """TEMPORARY: Reset admin password. Remove after use."""
-    import json, time, hashlib, bcrypt
-    from pathlib import Path as _Path
-
-    USERS_FILE = _Path("output/users.json")
-    ADMIN_EMAIL = "admin@aicontentgen.com"
-    ADMIN_PASSWORD = "admin123456"
-    ADMIN_NAME = "Admin"
-
-    USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
-
-    if USERS_FILE.exists():
-        users = json.loads(USERS_FILE.read_text())
-    else:
-        users = {}
-
-    user_id = hashlib.sha256(f"{ADMIN_EMAIL}{time.time()}".encode()).hexdigest()[:16]
-    password_hash = bcrypt.hashpw(ADMIN_PASSWORD.encode(), bcrypt.gensalt()).decode()
-
-    users[ADMIN_EMAIL] = {
-        "id": user_id,
-        "email": ADMIN_EMAIL,
-        "name": ADMIN_NAME,
-        "password_hash": password_hash,
-        "plan": "business",
-        "role": "admin",
-        "created_at": time.time(),
-        "generations_today": 0,
-        "generations_total": 0,
-        "last_generation_date": "",
-        "stripe_customer_id": None,
-    }
-
-    USERS_FILE.write_text(json.dumps(users, indent=2))
-    return {"success": True, "message": f"Admin reset: {ADMIN_EMAIL} / {ADMIN_PASSWORD}"}
