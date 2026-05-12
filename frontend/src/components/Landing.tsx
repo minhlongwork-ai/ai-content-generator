@@ -1,5 +1,5 @@
 /* src/components/Landing.tsx — Professional Hero + Features + Testimonials + CTA */
-import { IconSparkles, IconFileText, IconSearch, IconTarget, IconVideo, IconMic, IconRocket, IconCheck, IconStar, IconZap, IconGlobe, IconShield, IconArrowRight, IconPlay } from './Icons';
+import { IconSparkles, IconFileText, IconSearch, IconTarget, IconRocket, IconZap, IconArrowRight, IconPlay } from './Icons';
 
 interface LandingProps {
   onGetStarted: () => void;

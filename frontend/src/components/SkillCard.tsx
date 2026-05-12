@@ -1,5 +1,5 @@
 /* src/components/SkillCard.tsx — Card hiển thị một skill trong marketplace */
-import { IconSparkles, IconCheck } from './Icons';
+import { IconCheck } from './Icons';
 
 export interface SkillListing {
   skill_name: string;

@@ -592,6 +592,7 @@ body {
   margin-left: auto;
 }
 
+.skill-card-modern {
   padding: 1.25rem;
   display: flex;
   gap: 1.25rem;
