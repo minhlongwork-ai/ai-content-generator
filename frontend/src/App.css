@@ -1440,3 +1440,30 @@ body {
   border-color: var(--text-secondary);
   color: var(--text-primary);
 }
+
+/* ===== FIX: Sidebar user info column layout ===== */
+.user-info {
+  flex-direction: column;
+  align-items: flex-start !important;
+  gap: 0.25rem !important;
+}
+
+/* ===== FIX: Action card content column layout ===== */
+.action-content {
+  flex-direction: column !important;
+  gap: 0.15rem !important;
+}
+
+/* ===== FIX: Sidebar nav item text wrapping ===== */
+.nav-item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== FIX: Stat card layout ===== */
+.stat-card {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
