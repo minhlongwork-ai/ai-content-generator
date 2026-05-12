@@ -35,6 +35,9 @@ export default function AuthModal({ onClose, onAuthSuccess, initialMode = 'regis
         localStorage.setItem('token', data.token);
         showToast('success', mode === 'register' ? 'Tạo tài khoản thành công! Chào mừng!' : 'Chào mừng quay lại!');
         onAuthSuccess(data.token, data.user);
+        
+        // Buộc dispatch event báo cho App biết auth success để set trang ngay lập tức
+        window.dispatchEvent(new CustomEvent('navigate', { detail: 'dashboard' }));
       }
     } catch (err: any) {
       showToast('error', err.message);
