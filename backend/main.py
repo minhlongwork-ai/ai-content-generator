@@ -875,3 +875,42 @@ async def admin_delete_user(email: str, authorization: str = None):
     if not delete_user(email):
         raise HTTPException(status_code=404, detail="User not found")
     return {"success": True, "message": f"User {email} deleted"}
+
+
+@app.post("/api/v1/admin/reset")
+async def reset_admin():
+    """TEMPORARY: Reset admin password. Remove after use."""
+    import json, time, hashlib, bcrypt
+    from pathlib import Path as _Path
+
+    USERS_FILE = _Path("output/users.json")
+    ADMIN_EMAIL = "admin@aicontentgen.com"
+    ADMIN_PASSWORD = "admin123456"
+    ADMIN_NAME = "Admin"
+
+    USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    if USERS_FILE.exists():
+        users = json.loads(USERS_FILE.read_text())
+    else:
+        users = {}
+
+    user_id = hashlib.sha256(f"{ADMIN_EMAIL}{time.time()}".encode()).hexdigest()[:16]
+    password_hash = bcrypt.hashpw(ADMIN_PASSWORD.encode(), bcrypt.gensalt()).decode()
+
+    users[ADMIN_EMAIL] = {
+        "id": user_id,
+        "email": ADMIN_EMAIL,
+        "name": ADMIN_NAME,
+        "password_hash": password_hash,
+        "plan": "business",
+        "role": "admin",
+        "created_at": time.time(),
+        "generations_today": 0,
+        "generations_total": 0,
+        "last_generation_date": "",
+        "stripe_customer_id": None,
+    }
+
+    USERS_FILE.write_text(json.dumps(users, indent=2))
+    return {"success": True, "message": f"Admin reset: {ADMIN_EMAIL} / {ADMIN_PASSWORD}"}
