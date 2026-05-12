@@ -1,4 +1,4 @@
-/* src/App.tsx — Main App with Sidebar + Auth + Routing + Light Mode (Tiếng Việt) */
+/* src/App.tsx — Main App with Sidebar + Auth + Routing + Admin + User Profile */
 import { useState, useEffect } from 'react';
 import Landing from './components/Landing';
 import Pricing from './components/Pricing';
@@ -9,19 +9,23 @@ import AdCopy from './components/AdCopy';
 import VideoScript from './components/VideoScript';
 import Settings from './components/Settings';
 import AuthModal from './components/AuthModal';
+import AdminDashboard from './components/AdminDashboard';
+import UserProfile from './components/UserProfile';
 import { ToastContainer } from './components/Toast';
-import { IconSparkles, IconFileText, IconSearch, IconTarget, IconVideo, IconSettings, IconLogOut, IconBarChart } from './components/Icons';
+import { IconSparkles, IconFileText, IconSearch, IconTarget, IconVideo, IconSettings, IconLogOut, IconBarChart, IconShield, IconUsers as IconUser } from './components/Icons';
 import './App.css';
 
-type Page = 'landing' | 'dashboard' | 'product' | 'caption' | 'ad' | 'video' | 'settings' | 'pricing';
+type Page = 'landing' | 'dashboard' | 'product' | 'caption' | 'ad' | 'video' | 'settings' | 'pricing' | 'admin' | 'profile';
 
-const navItems: { id: Page; label: string; icon: React.ReactNode; group: string }[] = [
+const navItems: { id: Page; label: string; icon: React.ReactNode; group: string; adminOnly?: boolean }[] = [
   { id: 'dashboard', label: 'Tổng Quan', icon: <IconBarChart size={18} />, group: 'main' },
   { id: 'product', label: 'Mô Tả SP', icon: <IconFileText size={18} />, group: 'tools' },
   { id: 'caption', label: 'Caption & SEO', icon: <IconSearch size={18} />, group: 'tools' },
   { id: 'ad', label: 'Quảng Cáo', icon: <IconTarget size={18} />, group: 'tools' },
   { id: 'video', label: 'Video AI', icon: <IconVideo size={18} />, group: 'tools' },
+  { id: 'admin', label: 'Admin', icon: <IconShield size={18} />, group: 'admin', adminOnly: true },
   { id: 'pricing', label: 'Bảng Giá', icon: <IconSparkles size={18} />, group: 'account' },
+  { id: 'profile', label: 'Hồ Sơ', icon: <IconUser size={18} />, group: 'account' },
   { id: 'settings', label: 'Cài Đặt', icon: <IconSettings size={18} />, group: 'account' },
 ];
 
@@ -36,6 +40,7 @@ export default function App() {
   const [darkMode, setDarkMode] = useState(true);
 
   const isLanding = page === 'landing';
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -80,11 +85,14 @@ export default function App() {
       case 'video': return <VideoScript token={token} />;
       case 'settings': return <Settings token={token} user={user} onLogout={handleLogout} />;
       case 'pricing': return <Pricing onSelectPlan={(p) => p === 'auth' ? setShowAuth(true) : setPage('pricing')} userPlan={user?.plan} token={token || undefined} />;
+      case 'admin': return isAdmin ? <AdminDashboard token={token || ''} /> : <Dashboard token={token} user={user} />;
+      case 'profile': return <UserProfile token={token || ''} user={user} onLogout={handleLogout} />;
       default: return <Dashboard token={token} user={user} />;
     }
   };
 
-  const mainNav = navItems.filter((n) => n.group === 'main' || n.group === 'tools');
+  const mainNav = navItems.filter((n) => (n.group === 'main' || n.group === 'tools') && (!n.adminOnly || isAdmin));
+  const adminNav = navItems.filter((n) => n.group === 'admin' && n.adminOnly && isAdmin);
   const accountNav = navItems.filter((n) => n.group === 'account');
 
   // Landing page has its own nav, no sidebar needed
@@ -122,6 +130,22 @@ export default function App() {
               </button>
             ))}
           </div>
+
+          {adminNav.length > 0 && (
+            <>
+              {sidebarOpen && <div className="nav-divider" />}
+              <div className="nav-group">
+                <div className="nav-section-label">Quản trị</div>
+                {adminNav.map((item) => (
+                  <button key={item.id} className={`nav-item admin-nav-item ${page === item.id ? 'active' : ''}`} onClick={() => setPage(item.id)} title={item.label}>
+                    <span className="nav-icon">{item.icon}</span>
+                    {sidebarOpen && <span className="nav-label">{item.label}</span>}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
           {sidebarOpen && <div className="nav-divider" />}
           <div className="nav-group">
             {accountNav.map((item) => (
@@ -142,7 +166,10 @@ export default function App() {
             {user ? (
               <>
                 <div className="user-info">
-                  <div className="user-avatar">{user.name?.[0]?.toUpperCase() || '?'}</div>
+                  <div className="user-avatar">
+                    {user.role === 'admin' && <IconShield size={14} />}
+                    {user.role !== 'admin' && (user.name?.[0]?.toUpperCase() || '?')}
+                  </div>
                   <div className="user-name">{user.name}</div>
                   <div className="user-email">{user.email}</div>
                 </div>

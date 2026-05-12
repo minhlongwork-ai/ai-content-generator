@@ -820,3 +820,55 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
+
+# ─── Admin Endpoints ──────────────────────────────────────────
+
+from admin import (
+    require_admin, get_all_users, get_admin_stats,
+    set_user_role, set_user_plan, delete_user,
+)
+
+
+class AdminUserUpdateRequest(BaseModel):
+    role: Optional[str] = Field(default=None, description="user or admin")
+    plan: Optional[str] = Field(default=None, description="free, pro, or business")
+
+
+@app.get("/api/admin/stats")
+async def admin_stats(authorization: str = None):
+    """Get platform-wide stats (admin only)."""
+    await require_admin(authorization)
+    return get_admin_stats()
+
+
+@app.get("/api/admin/users")
+async def admin_users(authorization: str = None):
+    """Get all users (admin only)."""
+    await require_admin(authorization)
+    return {"users": get_all_users()}
+
+
+@app.put("/api/admin/users/{email}")
+async def admin_update_user(email: str, req: AdminUserUpdateRequest, authorization: str = None):
+    """Update user role/plan (admin only)."""
+    await require_admin(authorization)
+    
+    if req.role:
+        if not set_user_role(email, req.role):
+            raise HTTPException(status_code=400, detail="Invalid role or user not found")
+    
+    if req.plan:
+        if not set_user_plan(email, req.plan):
+            raise HTTPException(status_code=400, detail="Invalid plan or user not found")
+    
+    return {"success": True, "message": f"User {email} updated"}
+
+
+@app.delete("/api/admin/users/{email}")
+async def admin_delete_user(email: str, authorization: str = None):
+    """Delete a user (admin only)."""
+    await require_admin(authorization)
+    if not delete_user(email):
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True, "message": f"User {email} deleted"}
