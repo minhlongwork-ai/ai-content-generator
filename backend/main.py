@@ -121,11 +121,12 @@ async def get_user_api_key(authorization: str = None) -> tuple:
     if not user:
         return None, None, "User not found"
 
-    # Get user's API key from settings
-    user_settings = load_settings()
-    api_key = user_settings.get("OPENROUTER_API_KEY", "")
+    # Get user's API key from their profile (per-user keys)
+    email = user.get("email", "")
+    user_keys = get_user_api_keys(email)
+    api_key = user_keys.get("OPENROUTER_API_KEY", "")
 
-    return api_key, user.get("email"), None
+    return api_key, email, None
 
 
 # ─── Generate Endpoints ──────────────────────────────────────
@@ -337,23 +338,60 @@ class SettingsRequest(BaseModel):
 
 
 @app.get("/api/settings")
-async def get_settings():
-    """Get current settings (with masked API keys)."""
+async def get_settings(authorization: str = None):
+    """Get current user's settings (with masked API keys)."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    token = authorization.split(" ", 1)[1]
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    user = get_user_by_id(payload["sub"])
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    email = user.get("email", "")
+    user_keys = get_user_api_keys(email)
+
+    # Mask sensitive keys
+    masked = {}
+    for key, value in user_keys.items():
+        if "API_KEY" in key and value:
+            masked[key] = value[:8] + "..." + value[-4:] if len(value) > 12 else "***"
+        else:
+            masked[key] = value
+
     return {
-        "settings": get_masked_settings(),
-        "api_keys_configured": check_api_keys(),
+        "settings": masked,
+        "api_keys_configured": {k: bool(v) for k, v in user_keys.items() if "API_KEY" in k},
     }
 
 
 @app.post("/api/settings")
-async def update_settings(request: SettingsRequest):
-    """Update settings (API keys, model selection, etc.)."""
+async def update_settings(request: SettingsRequest, authorization: str = None):
+    """Update user's settings (API keys, model selection, etc.)."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    token = authorization.split(" ", 1)[1]
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    user = get_user_by_id(payload["sub"])
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    email = user.get("email", "")
     try:
-        save_settings(request.settings)
+        set_user_api_keys(email, request.settings)
+        user_keys = get_user_api_keys(email)
         return {
             "success": True,
             "message": "Settings saved successfully",
-            "api_keys_configured": check_api_keys(),
+            "api_keys_configured": {k: bool(v) for k, v in user_keys.items() if "API_KEY" in k},
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save settings: {e}")
@@ -369,8 +407,8 @@ async def check_settings():
 
 from auth import (
     create_user, authenticate_user, create_token, verify_token,
-    get_user_by_id, get_generation_stats, increment_generation,
-    upgrade_user_plan,
+    get_user_by_id, get_user_by_email, get_generation_stats, increment_generation,
+    upgrade_user_plan, get_user_api_keys, set_user_api_keys, get_user_setting,
 )
 from payment import (
     create_checkout_session, handle_webhook, get_subscription,
@@ -548,15 +586,50 @@ from video_engine import (
     VIDEO_PRICING, AUDIO_SUPPORTED_MODELS,
 )
 
-# Initialize video engine (lazy, uses env vars)
+# Initialize video engine (lazy, uses env vars as fallback)
 video_engine: VideoEngine = None
 
 
-def get_video_engine() -> VideoEngine:
+def get_video_engine(
+    user_fal_key: str = None,
+    user_replicate_key: str = None,
+    user_elevenlabs_key: str = None,
+    user_openai_key: str = None,
+) -> VideoEngine:
+    """Create VideoEngine with user's API keys, falling back to env vars."""
     global video_engine
-    # Always create fresh instance to pick up latest env vars
-    video_engine = VideoEngine()
+    video_engine = VideoEngine(
+        fal_api_key=user_fal_key or None,
+        replicate_api_key=user_replicate_key or None,
+        elevenlabs_api_key=user_elevenlabs_key or None,
+        openai_api_key=user_openai_key or None,
+    )
     return video_engine
+
+
+async def get_user_video_keys(authorization: str = None) -> tuple:
+    """Extract user's video-related API keys from JWT. Returns (keys_dict, email, error)."""
+    if not authorization or not authorization.startswith("Bearer "):
+        return {}, None, None
+
+    token = authorization.split(" ", 1)[1]
+    payload = verify_token(token)
+    if not payload:
+        return {}, None, "Invalid or expired token"
+
+    user = get_user_by_id(payload["sub"])
+    if not user:
+        return {}, None, "User not found"
+
+    email = user.get("email", "")
+    user_keys = get_user_api_keys(email)
+
+    return {
+        "fal_api_key": user_keys.get("FAL_API_KEY", ""),
+        "replicate_api_key": user_keys.get("REPLICATE_API_KEY", ""),
+        "elevenlabs_api_key": user_keys.get("ELEVENLABS_API_KEY", ""),
+        "openai_api_key": user_keys.get("OPENAI_API_KEY", ""),
+    }, email, None
 
 
 class VideoGenerateRequest(BaseModel):
@@ -601,9 +674,15 @@ class VideoScriptToVideoRequest(BaseModel):
 
 
 @app.get("/api/video/providers")
-async def get_video_providers():
-    """Get available video generation providers."""
-    engine = get_video_engine()
+async def get_video_providers(authorization: str = None):
+    """Get available video generation providers for current user."""
+    user_keys, email, err = await get_user_video_keys(authorization)
+    engine = get_video_engine(
+        user_fal_key=user_keys.get("fal_api_key"),
+        user_replicate_key=user_keys.get("replicate_api_key"),
+        user_elevenlabs_key=user_keys.get("elevenlabs_api_key"),
+        user_openai_key=user_keys.get("openai_api_key"),
+    )
     return {
         "providers": engine.available_providers,
         "models": [
@@ -625,20 +704,31 @@ async def get_video_prices(duration: int = 5):
 
 
 @app.post("/api/video/generate")
-async def generate_video(request: VideoGenerateRequest):
+async def generate_video(request: VideoGenerateRequest, authorization: str = None):
     """Generate AI video from prompt.
     
     Supports multiple models via fal.ai and Replicate.
     Optionally adds TTS narration and BGM.
+    Uses user's API keys from their profile.
     """
-    engine = get_video_engine()
+    # Get user's API keys
+    user_keys, email, err = await get_user_video_keys(authorization)
+    if err:
+        raise HTTPException(status_code=401, detail=err)
+
+    engine = get_video_engine(
+        user_fal_key=user_keys.get("fal_api_key"),
+        user_replicate_key=user_keys.get("replicate_api_key"),
+        user_elevenlabs_key=user_keys.get("elevenlabs_api_key"),
+        user_openai_key=user_keys.get("openai_api_key"),
+    )
     
     # Check providers
     available = engine.available_providers
     if not available.get("fal.ai") and not available.get("replicate"):
         raise HTTPException(
             status_code=503,
-            detail="No video generation provider configured. Set FAL_API_KEY or REPLICATE_API_KEY."
+            detail="No video generation provider configured. Please add FAL_API_KEY or REPLICATE_API_KEY in Settings."
         )
     
     # Parse model
@@ -713,21 +803,31 @@ async def generate_video(request: VideoGenerateRequest):
 
 
 @app.post("/api/video/script-to-video")
-async def script_to_video(request: VideoScriptToVideoRequest):
+async def script_to_video(request: VideoScriptToVideoRequest, authorization: str = None):
     """Convert a video script to actual video with TTS.
     
     Takes a script from /api/generate/video-script and generates:
     1. TTS audio for narration
     2. AI video from visual descriptions
     3. Merges audio + video
+    Uses user's API keys from their profile.
     """
-    engine = get_video_engine()
+    user_keys, email, err = await get_user_video_keys(authorization)
+    if err:
+        raise HTTPException(status_code=401, detail=err)
+
+    engine = get_video_engine(
+        user_fal_key=user_keys.get("fal_api_key"),
+        user_replicate_key=user_keys.get("replicate_api_key"),
+        user_elevenlabs_key=user_keys.get("elevenlabs_api_key"),
+        user_openai_key=user_keys.get("openai_api_key"),
+    )
     
     available = engine.available_providers
     if not available.get("fal.ai") and not available.get("replicate"):
         raise HTTPException(
             status_code=503,
-            detail="No video generation provider configured."
+            detail="No video generation provider configured. Please add FAL_API_KEY or REPLICATE_API_KEY in Settings."
         )
     
     try:

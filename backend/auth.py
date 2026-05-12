@@ -58,6 +58,7 @@ def create_user(email: str, password: str, name: str = "") -> dict:
         "generations_total": 0,
         "last_generation_date": "",
         "stripe_customer_id": None,
+        "api_keys": {},
     }
     users[email] = user
     _save_users(users)
@@ -142,3 +143,27 @@ def get_generation_stats(email: str) -> dict:
         "remaining": max(0, limit - today_count),
         "plan": plan,
     }
+
+
+def get_user_api_keys(email: str) -> dict:
+    """Get user's stored API keys."""
+    users = _load_users()
+    user = users.get(email, {})
+    return user.get("api_keys", {})
+
+
+def set_user_api_keys(email: str, keys: dict):
+    """Set user's API keys. Only updates provided keys, preserves others."""
+    users = _load_users()
+    if email not in users:
+        raise ValueError("User not found")
+    if "api_keys" not in users[email]:
+        users[email]["api_keys"] = {}
+    users[email]["api_keys"].update(keys)
+    _save_users(users)
+
+
+def get_user_setting(email: str, key: str, default: str = "") -> str:
+    """Get a single setting from user's API keys."""
+    keys = get_user_api_keys(email)
+    return keys.get(key, default)
