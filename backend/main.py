@@ -23,6 +23,12 @@ app = FastAPI(
     version="2.0.0"
 )
 
+
+@app.get("/")
+async def root():
+    """Root endpoint for health check."""
+    return {"status": "ok", "service": "ai-content-generator-api", "version": "2.0.0"}
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
